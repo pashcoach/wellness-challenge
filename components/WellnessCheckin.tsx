@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { CHALLENGE, pillarForWeek } from "@/lib/constants";
+import { CHALLENGE, WELLNESS_ACTIVITIES, pillarForWeek } from "@/lib/constants";
 import type { Profile, WellnessCheckin } from "@/lib/data";
 
 export default function WellnessCheckin({
@@ -92,12 +92,15 @@ export default function WellnessCheckin({
           required
         >
           <option value="">Choose an activity…</option>
-          {pillar.choices.map((c) => (
+          {WELLNESS_ACTIVITIES.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
         </select>
+        <p className="mt-1 text-xs text-slate-500">
+          Any wellness activity counts, any week — the list is the same all challenge long.
+        </p>
       </div>
 
       {isOther && (
