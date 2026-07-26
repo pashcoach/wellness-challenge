@@ -2,13 +2,29 @@
 
 import { useEffect, useState } from "react";
 
-const ICONS = ["🏃", "🚴", "🏊", "🧘", "🏋️", "🚶", "⛹️", "🏒", "🥾", "🤸", "🏐", "⛳", "🌱", "💧", "🧑‍🤝‍🧑", "🎯"];
+// Realistic full-color activity icons (OpenMoji, CC BY-SA 4.0)
+const ICONS = [
+  "runner",
+  "cyclist",
+  "swimmer",
+  "yoga",
+  "weightlifter",
+  "hiking",
+  "dancer",
+  "basketball",
+  "soccer",
+  "tennis",
+  "volleyball",
+  "golf",
+  "hockey",
+  "meditation",
+];
 
 interface Floater {
   id: number;
   icon: string;
   left: number; // vw
-  size: number; // rem
+  size: number; // px
   duration: number; // s
   delay: number; // s
   opacity: number;
@@ -20,14 +36,14 @@ export default function ActivityBackdrop() {
 
   useEffect(() => {
     // Generate on client only to avoid hydration mismatch
-    const items: Floater[] = Array.from({ length: 22 }, (_, i) => ({
+    const items: Floater[] = Array.from({ length: 14 }, (_, i) => ({
       id: i,
       icon: ICONS[i % ICONS.length],
-      left: Math.random() * 100,
-      size: 1.2 + Math.random() * 2.2,
-      duration: 14 + Math.random() * 18,
-      delay: -Math.random() * 30,
-      opacity: 0.15 + Math.random() * 0.25,
+      left: Math.random() * 92,
+      size: 72 + Math.random() * 72, // 72–144px — large and clearly visible
+      duration: 18 + Math.random() * 16,
+      delay: -Math.random() * 34,
+      opacity: 0.55 + Math.random() * 0.35,
       drift: 20 + Math.random() * 60,
     }));
     setFloaters(items);
@@ -51,7 +67,8 @@ export default function ActivityBackdrop() {
           style={
             {
               left: `${f.left}vw`,
-              fontSize: `${f.size}rem`,
+              width: f.size,
+              height: f.size,
               opacity: f.opacity,
               animationDuration: `${f.duration}s`,
               animationDelay: `${f.delay}s`,
@@ -60,7 +77,14 @@ export default function ActivityBackdrop() {
             } as React.CSSProperties
           }
         >
-          {f.icon}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/brand/icons/${f.icon}.svg`}
+            alt=""
+            width={f.size}
+            height={f.size}
+            draggable={false}
+          />
         </span>
       ))}
 
