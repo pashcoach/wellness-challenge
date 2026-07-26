@@ -75,9 +75,17 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {preChallenge && (
+      {preChallenge && !CHALLENGE.testingMode && (
         <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
           🗓️ The challenge starts <strong>October 5, 2026</strong>. You&apos;re all set up — come back then to start logging!
+        </div>
+      )}
+
+      {CHALLENGE.testingMode && (
+        <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+          🧪 <strong>Testing mode</strong> — you can log entries with any date (they&apos;re mapped
+          into the challenge weeks so you can try everything). Data from testing will be wiped
+          before the real October 5 launch. Tap <strong>💬 Send feedback</strong> anytime!
         </div>
       )}
 

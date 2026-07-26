@@ -123,8 +123,9 @@ export default function ActivityForm({
             type="date"
             required
             value={date}
-            min={CHALLENGE.startDate}
-            max={CHALLENGE.endDate}
+            {...(CHALLENGE.testingMode
+              ? {}
+              : { min: CHALLENGE.startDate, max: CHALLENGE.endDate })}
             onChange={(e) => setDate(e.target.value)}
             className={input}
           />

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { ACTIVITIES, getChallengeWeek, pillarForWeek, pointsForMinutes } from "@/lib/constants";
+import { ACTIVITIES, CHALLENGE, getChallengeWeek, pillarForWeek, pointsForMinutes } from "@/lib/constants";
 import type { ActivityEntry, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
 
@@ -256,8 +256,9 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
                 <input
                   type="date"
                   value={editDate}
-                  min="2026-10-05"
-                  max="2026-10-30"
+                  {...(CHALLENGE.testingMode
+                    ? {}
+                    : { min: CHALLENGE.startDate, max: CHALLENGE.endDate })}
                   onChange={(e) => setEditDate(e.target.value)}
                   className={input}
                   required

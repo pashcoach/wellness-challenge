@@ -3,6 +3,9 @@ export const CHALLENGE = {
   org: "Federated Co-operatives Limited",
   startDate: "2026-10-05",
   endDate: "2026-10-30",
+  /** TESTING MODE: true = any date can be logged (mapped into the challenge).
+   *  Set to false before the real October launch! */
+  testingMode: true,
   weeklyPointGoal: 140,
   totalPointGoal: 560,
   pointsPerTenMinutes: 10,
@@ -133,6 +136,13 @@ export function pointsForMinutes(minutes: number): number {
 }
 
 export function getChallengeWeek(dateStr: string): number | null {
+  if (CHALLENGE.testingMode) {
+    // In testing mode any date is accepted; map everything into the current
+    // "testing week" (always week 1–4 based on day of month so testers can
+    // see different weeks by picking different dates).
+    const day = new Date(dateStr + "T12:00:00").getDate();
+    return Math.min(4, Math.floor((day - 1) / 7) + 1);
+  }
   const d = new Date(dateStr + "T12:00:00");
   const start = new Date(CHALLENGE.startDate + "T00:00:00");
   const end = new Date(CHALLENGE.endDate + "T23:59:59");
