@@ -61,6 +61,29 @@ textarea::placeholder {
   user-select: none;
 }
 
+/* Flashing points calculator */
+@keyframes points-flash {
+  0% {
+    transform: scale(0.95);
+    background-color: #d1fae5;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    transform: scale(1.03);
+    background-color: #a7f3d0;
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(1);
+    background-color: #ecfdf5;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.points-flash {
+  animation: points-flash 0.5s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .activity-floater {
     animation: none;

@@ -19,6 +19,14 @@ export const PILLARS = [
       "Take a daily stretch break during work hours",
       "Find a new healthy recipe to make",
     ],
+    choices: [
+      "Increased my water intake",
+      "Took a daily stretch break",
+      "Tried a new healthy recipe",
+      "Got a good night's sleep",
+      "Meal prepped for the week",
+      "Other",
+    ],
   },
   {
     key: "psychological",
@@ -28,6 +36,14 @@ export const PILLARS = [
       "Take a meditation break daily",
       "Start or end your day by naming three things you are grateful for",
       "Watch a webinar or read an article on HomeWeb (Homewood Health) or Wellness Now (Co-operators)",
+    ],
+    choices: [
+      "Took a meditation break",
+      "Practiced gratitude (named three things)",
+      "Read an article or watched a wellness webinar",
+      "Read a book for pleasure",
+      "Took a proper break / unplugged",
+      "Other",
     ],
   },
   {
@@ -39,6 +55,14 @@ export const PILLARS = [
       "Check out options to save money through employee programs",
       "Watch a webinar or read an article on financial wellbeing",
     ],
+    choices: [
+      "Created or updated my budget",
+      "Checked out employee savings programs",
+      "Read/watched something on financial wellbeing",
+      "Reviewed my subscriptions or spending",
+      "Set a savings goal",
+      "Other",
+    ],
   },
   {
     key: "social",
@@ -48,6 +72,14 @@ export const PILLARS = [
       "Connect or schedule a coffee/tea meetup with a colleague",
       "Call a friend or family member you don't regularly talk to",
       "Volunteer in your community (remember: 2 paid volunteer days per year!)",
+    ],
+    choices: [
+      "Coffee/tea meetup with a colleague",
+      "Called a friend or family member",
+      "Volunteered (or signed up to volunteer)",
+      "Did an act of kindness",
+      "Joined a club, team, or community event",
+      "Other",
     ],
   },
 ] as const;

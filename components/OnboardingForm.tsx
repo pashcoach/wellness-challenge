@@ -13,6 +13,7 @@ export default function OnboardingForm({
   onDone: (p: Profile) => void;
 }) {
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [bu, setBu] = useState("");
   const [atCrc, setAtCrc] = useState<boolean | null>(null);
   const [age, setAge] = useState("");
@@ -32,6 +33,7 @@ export default function OnboardingForm({
       .insert({
         id: userId,
         full_name: fullName.trim(),
+        username: username.trim() || null,
         business_unit: bu,
         located_at_crc: atCrc,
         age_range: age,
@@ -54,6 +56,12 @@ export default function OnboardingForm({
         <div>
           <label className="mb-1 block text-sm font-medium">Your name</label>
           <input required value={fullName} onChange={(e) => setFullName(e.target.value)} className={input} placeholder="First and last name" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Username <span className="font-normal text-slate-400">(optional — shown on leaderboards instead of your name)</span>
+          </label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className={input} placeholder="e.g. Quadzilla" maxLength={20} />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Business unit</label>

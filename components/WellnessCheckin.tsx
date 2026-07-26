@@ -16,22 +16,33 @@ export default function WellnessCheckin({
   existing: WellnessCheckin | undefined;
   onLogged: () => void;
 }) {
-  const [comment, setComment] = useState("");
+  const [choice, setChoice] = useState("");
+  const [otherText, setOtherText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const pillar = pillarForWeek(week);
   const today = new Date().toISOString().slice(0, 10);
+  const isOther = choice === "Other";
 
-  async function handleCheck() {
+  async function handleCheck(e: React.FormEvent) {
+    e.preventDefault();
     if (!supabase) return;
+    if (!choice) {
+      setError("Pick what you did from the list (or choose Other).");
+      return;
+    }
+    if (isOther && !otherText.trim()) {
+      setError("Tell us what you did in the Other box.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const { error } = await supabase.from("wellness_checkins").insert({
       user_id: profile.id,
       week,
       pillar: pillar.key,
-      comment: comment.trim() || null,
+      comment: isOther ? otherText.trim() : choice,
       points: CHALLENGE.wellnessCheckInPoints,
       entry_date: today,
     });
@@ -39,6 +50,9 @@ export default function WellnessCheckin({
     if (error) setError(error.message);
     else onLogged();
   }
+
+  const input =
+    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
 
   if (existing) {
     return (
@@ -53,7 +67,7 @@ export default function WellnessCheckin({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <form onSubmit={handleCheck} className="rounded-xl border border-slate-200 bg-white p-4">
       <p className="font-semibold text-slate-800">
         Week {week}: {pillar.prompt}
       </p>
@@ -68,21 +82,46 @@ export default function WellnessCheckin({
       <p className="mt-2 text-xs text-slate-500">
         These are just examples — anything that supports your {pillar.label.toLowerCase()} counts!
       </p>
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="Optional: what did you do?"
-        rows={2}
-        className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-      />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+
+      <div className="mt-3">
+        <label className="mb-1 block text-sm font-medium">What did you do?</label>
+        <select
+          value={choice}
+          onChange={(e) => setChoice(e.target.value)}
+          className={input}
+          required
+        >
+          <option value="">Choose an activity…</option>
+          {pillar.choices.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {isOther && (
+        <div className="mt-3">
+          <label className="mb-1 block text-sm font-medium">Tell us what you did</label>
+          <input
+            type="text"
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            placeholder="e.g. Decluttered the garage"
+            className={input}
+            required
+          />
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       <button
-        onClick={handleCheck}
+        type="submit"
         disabled={busy}
-        className="mt-2 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+        className="mt-3 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
       >
-        {busy ? "Saving…" : `I did something for my ${pillar.label.toLowerCase()} (+${CHALLENGE.wellnessCheckInPoints} pts)`}
+        {busy ? "Saving…" : `Log my ${pillar.label.toLowerCase()} check-in (+${CHALLENGE.wellnessCheckInPoints} pts)`}
       </button>
-    </div>
+    </form>
   );
 }

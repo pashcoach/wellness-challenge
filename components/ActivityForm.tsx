@@ -97,8 +97,11 @@ export default function ActivityForm({
         </div>
       </div>
       {pts > 0 && (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
-          = {pts} points
+        <p
+          key={pts}
+          className="points-flash rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-bold text-emerald-800"
+        >
+          ✨ {pts} points
         </p>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}

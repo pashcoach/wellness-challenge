@@ -7,11 +7,21 @@ import { useAuth } from "./auth";
 export interface Profile {
   id: string;
   full_name: string;
+  username: string | null;
   business_unit: string;
   located_at_crc: boolean;
   age_range: string;
   team_id: string | null;
   is_admin: boolean;
+}
+
+/** Public display name: username if set, otherwise "First L." */
+export function displayName(p: { full_name: string; username?: string | null }): string {
+  if (p.username && p.username.trim()) return p.username.trim();
+  const parts = p.full_name.trim().split(/\s+/);
+  const first = parts[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1] : "";
+  return last ? `${first} ${last[0]}.` : first;
 }
 
 export interface Team {

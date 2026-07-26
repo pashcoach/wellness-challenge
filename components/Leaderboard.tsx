@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { CHALLENGE, currentChallengeWeek } from "@/lib/constants";
+import { displayName } from "@/lib/data";
 
 interface PersonRow {
   id: string;
@@ -36,7 +37,7 @@ export default function Leaderboard() {
       return;
     }
     const [profiles, activities, checkins, teamRows] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, team_id"),
+      supabase.from("profiles").select("id, full_name, username, team_id"),
       supabase.from("activity_entries").select("user_id, points, week"),
       supabase.from("wellness_checkins").select("user_id, points, week"),
       supabase.from("teams").select("id, name"),
@@ -56,7 +57,7 @@ export default function Leaderboard() {
 
     const personRows: PersonRow[] = (profiles.data ?? []).map((p) => ({
       id: p.id,
-      name: p.full_name,
+      name: displayName(p),
       team_name: p.team_id ? teamNames.get(p.team_id) ?? null : null,
       total: totals.get(p.id)?.total ?? 0,
       weekly: totals.get(p.id)?.weekly ?? [0, 0, 0, 0, 0],

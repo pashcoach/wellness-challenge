@@ -4,6 +4,7 @@
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
+  username text,
   business_unit text not null,
   located_at_crc boolean not null default false,
   age_range text not null,
@@ -11,6 +12,9 @@ create table if not exists profiles (
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- If the table already exists, add the username column:
+alter table profiles add column if not exists username text;
 
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),
