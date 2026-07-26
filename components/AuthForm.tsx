@@ -15,6 +15,8 @@ export default function AuthForm() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [showReset, setShowReset] = useState(false);
+  const [showRecoverEmail, setShowRecoverEmail] = useState(false);
+  const [recoverName, setRecoverName] = useState("");
 
   if (!configured) {
     return (
@@ -51,6 +53,31 @@ export default function AuthForm() {
     else setNotice("Password reset email sent! Check your inbox (and spam folder).");
   }
 
+  async function handleRecoverEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("full_name", recoverName.trim())
+      .limit(1);
+    setBusy(false);
+    if (error || !data || data.length === 0) {
+      setError(
+        "We couldn't find an account under that name. Check the spelling, or contact Patrick to look it up for you."
+      );
+      return;
+    }
+    setShowRecoverEmail(false);
+    setShowReset(true);
+    setNotice(
+      "Good news — an account exists under that name! For privacy we can't display the email on screen. Enter any email you might have used (work or personal) below — the reset link will only arrive if it's the one on your account."
+    );
+  }
+
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
       <div className="flex items-center gap-3">
@@ -60,9 +87,8 @@ export default function AuthForm() {
           <p className="text-xs text-slate-500">{CHALLENGE.org}</p>
         </div>
       </div>
-      <p className="mt-1 text-sm text-slate-600">
-        October 5 – 30, 2026 · Earn points, win prizes, feel great.
-      </p>
+      <p className="mt-1 text-sm font-medium text-slate-700">October 5 – 30, 2026</p>
+      <p className="text-sm text-slate-500">Earn points, win prizes, feel great.</p>
       <div className="mt-4 grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium">
         <button
           onClick={() => setMode("signup")}
@@ -77,16 +103,30 @@ export default function AuthForm() {
           Sign in
         </button>
       </div>
-      <form onSubmit={showReset ? handleReset : handleSubmit} className="mt-4 space-y-3">
-        <input
-          type="email"
-          required
-          placeholder="Work email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-        />
-        {!showReset && (
+      <form
+        onSubmit={showRecoverEmail ? handleRecoverEmail : showReset ? handleReset : handleSubmit}
+        className="mt-4 space-y-3"
+      >
+        {showRecoverEmail ? (
+          <input
+            type="text"
+            required
+            placeholder="Your first and last name"
+            value={recoverName}
+            onChange={(e) => setRecoverName(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+        ) : (
+          <input
+            type="email"
+            required
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+        )}
+        {!showReset && !showRecoverEmail && (
           <input
             type="password"
             required
@@ -106,22 +146,37 @@ export default function AuthForm() {
         >
           {busy
             ? "One moment…"
-            : showReset
-              ? "Send reset email"
-              : mode === "signup"
-                ? "Create my account"
-                : "Sign in"}
+            : showRecoverEmail
+              ? "Find my account"
+              : showReset
+                ? "Send reset email"
+                : mode === "signup"
+                  ? "Create my account"
+                  : "Sign in"}
         </button>
         <button
           type="button"
           onClick={() => {
             setShowReset(!showReset);
+            setShowRecoverEmail(false);
             setError(null);
             setNotice(null);
           }}
           className="w-full py-1 text-center text-xs font-medium text-slate-500 hover:text-emerald-700"
         >
           {showReset ? "← Back to sign in" : "Forgot your password?"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setShowRecoverEmail(!showRecoverEmail);
+            setShowReset(false);
+            setError(null);
+            setNotice(null);
+          }}
+          className="w-full py-1 text-center text-xs font-medium text-slate-500 hover:text-emerald-700"
+        >
+          {showRecoverEmail ? "← Back to sign in" : "Forgot which email you used?"}
         </button>
       </form>
     </div>
