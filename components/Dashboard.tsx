@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useMyData, useProfile } from "@/lib/data";
 import {
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const { signOut } = useAuth();
   const { profile } = useProfile();
   const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
+  const [copied, setCopied] = useState(false);
 
   if (!profile) return null;
 
@@ -96,15 +98,31 @@ export default function Dashboard() {
       {/* Team card */}
       <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
         {team ? (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Your team</p>
-              <p className="mt-0.5 text-lg font-bold">{team.name}</p>
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Your team</p>
+                <p className="mt-0.5 text-lg font-bold">{team.name}</p>
+              </div>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(team.join_code);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="rounded-lg bg-slate-100 px-3 py-2 text-center transition-colors hover:bg-emerald-100"
+                title="Click to copy team code"
+              >
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                  {copied ? "✓ Copied!" : "Team code — tap to copy"}
+                </p>
+                <p className="font-mono text-sm font-bold tracking-widest">{team.join_code}</p>
+              </button>
             </div>
-            <div className="rounded-lg bg-slate-100 px-3 py-2 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-slate-500">Team code</p>
-              <p className="font-mono text-sm font-bold tracking-widest">{team.join_code}</p>
-            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              📨 Invite coworkers: have them sign up, then either pick <strong>{team.name}</strong> from
+              the team list or enter code <strong>{team.join_code}</strong> when they join.
+            </p>
           </div>
         ) : (
           <p className="text-sm text-slate-600">
