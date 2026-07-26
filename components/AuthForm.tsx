@@ -36,7 +36,7 @@ export default function AuthForm() {
       mode === "signup" ? await signUp(email, password) : await signIn(email, password);
     setBusy(false);
     if (error) setError(error);
-    else if (mode === "signup") setNotice("Account created! If you see a confirmation email, click it — otherwise you're signed in.");
+    else if (mode === "signup") setNotice("Account created — welcome aboard!");
   }
 
   async function handleReset(e: React.FormEvent) {
