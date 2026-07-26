@@ -38,6 +38,7 @@ export interface ActivityEntry {
   points: number;
   entry_date: string;
   week: number;
+  created_at: string;
 }
 
 export interface WellnessCheckin {
@@ -48,6 +49,7 @@ export interface WellnessCheckin {
   comment: string | null;
   points: number;
   entry_date: string;
+  created_at: string;
 }
 
 export function useProfile() {

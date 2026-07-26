@@ -13,6 +13,7 @@ import ActivityForm from "./ActivityForm";
 import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
 import EntriesManager from "./EntriesManager";
+import EntryLog from "./EntryLog";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
 
@@ -163,6 +164,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Entry log */}
+      <EntryLog activities={activities} checkins={checkins} />
 
       {/* Leaderboard */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
