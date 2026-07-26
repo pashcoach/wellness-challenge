@@ -13,6 +13,7 @@ import ActivityForm from "./ActivityForm";
 import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
 import EntryLog from "./EntryLog";
+import FeedbackButton from "./FeedbackButton";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
 
@@ -166,6 +167,8 @@ export default function Dashboard() {
         <h2 className="mb-3 font-bold">🏆 Leaderboards</h2>
         <Leaderboard key={lbRefreshKey} />
       </div>
+
+      <FeedbackButton profile={profile} />
     </div>
   );
 }
