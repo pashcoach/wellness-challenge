@@ -151,7 +151,7 @@ export default function Dashboard() {
 
       {/* Leaderboard */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
-        <h2 className="mb-3 font-bold">🏆 Team leaderboard</h2>
+        <h2 className="mb-3 font-bold">🏆 Leaderboards</h2>
         <Leaderboard />
       </div>
     </div>
