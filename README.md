@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FCL CRC Wellness Challenge 2026
 
-## Getting Started
+A mobile- and desktop-friendly web app for the annual FCL CRC Wellness Challenge
+(October 5–30, 2026). Replaces the Glide app — self-hosted, near-zero running cost.
 
-First, run the development server:
+## What it does
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**Participants**
+- Sign up with email + password (no app store — it's a website, works on any phone or computer)
+- One-time profile: name, business unit, "Are you located at CRC?", age range
+- Create a team (gets a 6-character join code) or join one — no team size cap
+- Log physical activity: pick activity + minutes → points auto-calculated (10 pts per 10 min)
+- Weekly wellness check-in: one tap per week with example activities + optional comment (20 pts)
+- Personal progress vs. the 140 pts/week (560 total) goals
+- Team leaderboard (average points per member — same scoring as 2025)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Admins (Patrick)**
+- Live stats: registered/active counts, CRC split, total minutes
+- Participants-logging-per-day chart (the engagement curve for the report)
+- Active-by-business-unit breakdown
+- Team standings
+- Prize draws: weekly draw per week, random team lunch draw, survey draw, top-team display
+- One-click CSV export with per-participant totals → feeds the post-challenge report
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js (React) + Tailwind — responsive by default
+- Supabase (free tier): Postgres database + email/password auth
+- Deploys free on Vercel
 
-## Learn More
+## Setup
 
-To learn more about Next.js, take a look at the following resources:
+1. Create a free project at https://supabase.com
+2. In the Supabase SQL editor, run the contents of `supabase/schema.sql`
+3. In Supabase → Authentication → Providers, enable Email (it's on by default).
+   For lowest friction during the challenge, turn OFF "Confirm email" in
+   Authentication → Sign In / Providers → Email.
+4. Copy `.env.local.example` to `.env.local` and fill in the two values from
+   Supabase → Settings → API.
+5. `npm install && npm run dev` → http://localhost:3000
+6. Make yourself admin: in Supabase Table Editor → profiles, set `is_admin = true`
+   on your own row (after signing up in the app).
+7. Deploy: push this repo to GitHub, import into https://vercel.com (free),
+   add the same two env vars in Vercel project settings.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 2026 rules baked in (from the June 24 planning call)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Wellness activities: no fixed required list — weekly pillar prompt with examples
+  + optional "what did you do?" comment box
+- No cap on team size; scoring is average points per team member
+- No mid-challenge booster points (decided against)
+- CRC data fix: proper business-unit list + separate "located at CRC?" question
+- Challenge dates: Oct 5–30, 2026
+- Points: 10 pts per 10 min physical activity; 20 pts per weekly wellness check-in
+- Goals: 140 pts/week, 560 total
