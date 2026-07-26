@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { CHALLENGE, WELLNESS_ACTIVITIES, pillarForWeek } from "@/lib/constants";
 import type { Profile, WellnessCheckin } from "@/lib/data";
+import Toast from "./Toast";
 
 export default function WellnessCheckin({
   profile,
@@ -20,6 +21,7 @@ export default function WellnessCheckin({
   const [otherText, setOtherText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const pillar = pillarForWeek(week);
   const today = new Date().toISOString().slice(0, 10);
@@ -48,7 +50,10 @@ export default function WellnessCheckin({
     });
     setBusy(false);
     if (error) setError(error.message);
-    else onLogged();
+    else {
+      setToast(`${isOther ? otherText.trim() : choice} · +${CHALLENGE.wellnessCheckInPoints} pts confirmed!`);
+      onLogged();
+    }
   }
 
   const input =
@@ -67,6 +72,14 @@ export default function WellnessCheckin({
   }
 
   return (
+    <>
+      {toast && (
+        <Toast
+          message="Wellness check-in confirmed! 🎉"
+          sub={toast}
+          onDone={() => setToast(null)}
+        />
+      )}
     <form onSubmit={handleCheck} className="rounded-xl border border-slate-200 bg-white p-4">
       <p className="font-semibold text-slate-800">
         Week {week}: {pillar.prompt}
@@ -126,5 +139,6 @@ export default function WellnessCheckin({
         {busy ? "Saving…" : `Log my ${pillar.label.toLowerCase()} check-in (+${CHALLENGE.wellnessCheckInPoints} pts)`}
       </button>
     </form>
+    </>
   );
 }

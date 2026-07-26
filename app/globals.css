@@ -61,6 +61,26 @@ textarea::placeholder {
   user-select: none;
 }
 
+/* Toast notification pop-in */
+@keyframes toast-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, 2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.toast-pop {
+  animation: toast-pop 0.35s ease-out;
+}
+
 /* Flashing points calculator */
 @keyframes points-flash {
   0% {

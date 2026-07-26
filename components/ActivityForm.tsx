@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { ACTIVITIES, CHALLENGE, getChallengeWeek, pointsForMinutes } from "@/lib/constants";
 import type { Profile } from "@/lib/data";
+import Toast from "./Toast";
 
 export default function ActivityForm({
   profile,
@@ -20,7 +21,7 @@ export default function ActivityForm({
   const [date, setDate] = useState(today);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const mins = parseInt(minutes, 10);
   const pts = !isNaN(mins) && mins > 0 ? pointsForMinutes(mins) : 0;
@@ -64,11 +65,10 @@ export default function ActivityForm({
     setBusy(false);
     if (error) setError(error.message);
     else {
-      setSaved(true);
+      setToast(`${activityLabel} · ${mins} min · +${pts} pts confirmed!`);
       setActivity("");
       setOtherActivity("");
       setMinutes("");
-      setTimeout(() => setSaved(false), 2500);
       onLogged();
     }
   }
@@ -77,7 +77,15 @@ export default function ActivityForm({
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <>
+      {toast && (
+        <Toast
+          message="Entry confirmed! 🎉"
+          sub={toast}
+          onDone={() => setToast(null)}
+        />
+      )}
+      <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="mb-1 block text-sm font-medium">What did you do?</label>
         <select value={activity} onChange={(e) => handleActivityChange(e.target.value)} className={input} required>
@@ -131,7 +139,6 @@ export default function ActivityForm({
         </p>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {saved && <p className="text-sm font-medium text-emerald-700">Saved! Great work. 🎉</p>}
       <button
         type="submit"
         disabled={busy}
@@ -186,6 +193,7 @@ export default function ActivityForm({
           </div>
         </div>
       )}
-    </form>
+      </form>
+    </>
   );
 }
