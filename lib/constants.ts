@@ -93,7 +93,7 @@ export const BUSINESS_UNITS = [
   "Finance",
   "Health and Safety Compliance",
   "Technology",
-  "Manufacturing",
+  "FCL Manufacturing",
 ] as const;
 
 export const AGE_RANGES = ["18–29", "30–39", "40–49", "50–59", "60–69", "70–79"] as const;
