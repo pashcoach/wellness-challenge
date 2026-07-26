@@ -31,3 +31,32 @@ input::placeholder,
 textarea::placeholder {
   color: #94a3b8;
 }
+
+/* Floating activity icons on the login backdrop */
+@keyframes activity-float {
+  0% {
+    transform: translateY(0) translateX(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-60vh) translateX(var(--drift, 40px)) rotate(6deg);
+  }
+  100% {
+    transform: translateY(-130vh) translateX(0) rotate(-6deg);
+  }
+}
+
+.activity-floater {
+  animation-name: activity-float;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-floater {
+    animation: none;
+    position: static;
+    display: none;
+  }
+}

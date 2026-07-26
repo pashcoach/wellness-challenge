@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CHALLENGE } from "@/lib/constants";
+import ActivityBackdrop from "@/components/ActivityBackdrop";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -44,8 +45,9 @@ export default function ResetPasswordPage() {
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-800 to-emerald-950 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
+    <main className="relative flex min-h-screen items-center justify-center p-4">
+      <ActivityBackdrop />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
         <h1 className="text-xl font-bold text-emerald-800">{CHALLENGE.name}</h1>
         <p className="mt-1 text-sm text-slate-600">Choose a new password</p>
         {ready ? (

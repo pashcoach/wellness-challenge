@@ -6,6 +6,7 @@ import AuthForm from "@/components/AuthForm";
 import OnboardingForm from "@/components/OnboardingForm";
 import TeamSetup from "@/components/TeamSetup";
 import Dashboard from "@/components/Dashboard";
+import ActivityBackdrop from "@/components/ActivityBackdrop";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -29,31 +30,40 @@ export default function Home() {
 
   if (!session) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-800 to-emerald-950 p-4">
-        <AuthForm />
+      <main className="relative flex min-h-screen items-center justify-center p-4">
+        <ActivityBackdrop />
+        <div className="relative z-10 w-full max-w-sm">
+          <AuthForm />
+        </div>
       </main>
     );
   }
 
   if (!profile) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-800 to-emerald-950 p-4">
-        <OnboardingForm userId={session.user.id} onDone={() => refresh()} />
+      <main className="relative flex min-h-screen items-center justify-center p-4">
+        <ActivityBackdrop />
+        <div className="relative z-10 w-full max-w-md">
+          <OnboardingForm userId={session.user.id} onDone={() => refresh()} />
+        </div>
       </main>
     );
   }
 
   if (!teamChecked) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-emerald-800 to-emerald-950 p-4">
-        <TeamSetup
-          profile={profile}
-          onDone={() => {
-            setTeamChecked(true);
-            refresh();
-            router.refresh();
-          }}
-        />
+      <main className="relative flex min-h-screen items-center justify-center p-4">
+        <ActivityBackdrop />
+        <div className="relative z-10 w-full max-w-md">
+          <TeamSetup
+            profile={profile}
+            onDone={() => {
+              setTeamChecked(true);
+              refresh();
+              router.refresh();
+            }}
+          />
+        </div>
       </main>
     );
   }
