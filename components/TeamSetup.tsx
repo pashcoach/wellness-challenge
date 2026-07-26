@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/data";
+
+interface TeamRow {
+  id: string;
+  name: string;
+  join_code: string;
+  member_count: number;
+}
 
 export default function TeamSetup({
   profile,
@@ -13,9 +20,34 @@ export default function TeamSetup({
 }) {
   const [mode, setMode] = useState<"choose" | "create" | "join">("choose");
   const [teamName, setTeamName] = useState("");
-  const [joinCode, setJoinCode] = useState("");
+  const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const loadTeams = useCallback(async () => {
+    if (!supabase) return;
+    setLoadingTeams(true);
+    const [{ data: teamRows }, { data: profileRows }] = await Promise.all([
+      supabase.from("teams").select("id, name, join_code").order("created_at"),
+      supabase.from("profiles").select("team_id"),
+    ]);
+    const counts = new Map<string, number>();
+    for (const p of profileRows ?? []) {
+      if (p.team_id) counts.set(p.team_id, (counts.get(p.team_id) ?? 0) + 1);
+    }
+    setTeams(
+      (teamRows ?? []).map((t) => ({
+        ...t,
+        member_count: counts.get(t.id) ?? 0,
+      }))
+    );
+    setLoadingTeams(false);
+  }, []);
+
+  useEffect(() => {
+    if (mode === "join") loadTeams();
+  }, [mode, loadTeams]);
 
   async function createTeam(e: React.FormEvent) {
     e.preventDefault();
@@ -42,24 +74,13 @@ export default function TeamSetup({
     else onDone();
   }
 
-  async function joinTeam(e: React.FormEvent) {
-    e.preventDefault();
+  async function joinTeam(teamId: string) {
     if (!supabase) return;
     setBusy(true);
     setError(null);
-    const { data: team, error: tErr } = await supabase
-      .from("teams")
-      .select("id")
-      .ilike("join_code", joinCode.trim())
-      .maybeSingle();
-    if (tErr || !team) {
-      setBusy(false);
-      setError("No team found with that code. Check the code and try again.");
-      return;
-    }
     const { error: pErr } = await supabase
       .from("profiles")
-      .update({ team_id: team.id })
+      .update({ team_id: teamId })
       .eq("id", profile.id);
     setBusy(false);
     if (pErr) setError(pErr.message);
@@ -73,22 +94,33 @@ export default function TeamSetup({
 
   return (
     <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-      <h2 className="text-lg font-bold text-emerald-800">Join a team — or go solo</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Team members averaged <strong>twice the points</strong> of solo participants last year.
-        No size limit — the more the merrier!
-      </p>
+      <h2 className="text-lg font-bold text-emerald-800">Create or Join a Team 🤝</h2>
+      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <p className="text-sm font-semibold text-amber-900">
+          🍽️ Win a team lunch!
+        </p>
+        <p className="mt-0.5 text-xs text-amber-800">
+          Work together to earn points — the top team <em>and</em> one lucky randomly-drawn team
+          each win a team lunch at the end of the challenge. Team members averaged{" "}
+          <strong>twice the points</strong> of solo participants last year!
+        </p>
+      </div>
 
       {mode === "choose" && (
         <div className="mt-5 space-y-2">
-          <button onClick={() => setMode("create")} className={btn}>Create a new team</button>
+          <button onClick={() => setMode("create")} className={btn}>
+            Create a new team
+          </button>
           <button
             onClick={() => setMode("join")}
             className="w-full rounded-lg border border-emerald-600 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
           >
-            Join with a team code
+            Join an existing team
           </button>
-          <button onClick={onDone} className="w-full py-2 text-sm text-slate-500 hover:text-slate-700">
+          <button
+            onClick={onDone}
+            className="w-full py-2 text-sm text-slate-500 hover:text-slate-700"
+          >
             Skip for now — I&apos;ll participate solo
           </button>
         </div>
@@ -96,20 +128,72 @@ export default function TeamSetup({
 
       {mode === "create" && (
         <form onSubmit={createTeam} className="mt-4 space-y-3">
-          <input required value={teamName} onChange={(e) => setTeamName(e.target.value)} className={input} placeholder="Team name (e.g. The Quad Squad)" />
+          <input
+            required
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            className={input}
+            placeholder="Team name (e.g. The Quad Squad)"
+          />
+          <p className="text-xs text-slate-500">
+            There&apos;s no size limit — the more the merrier! You&apos;ll get a shareable team code
+            after creating it.
+          </p>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={busy} className={btn}>{busy ? "Creating…" : "Create team"}</button>
-          <button type="button" onClick={() => setMode("choose")} className="w-full py-1 text-sm text-slate-500">← Back</button>
+          <button type="submit" disabled={busy} className={btn}>
+            {busy ? "Creating…" : "Create team"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("choose")}
+            className="w-full py-1 text-sm text-slate-500"
+          >
+            ← Back
+          </button>
         </form>
       )}
 
       {mode === "join" && (
-        <form onSubmit={joinTeam} className="mt-4 space-y-3">
-          <input required value={joinCode} onChange={(e) => setJoinCode(e.target.value)} className={`${input} uppercase tracking-widest`} placeholder="6-letter team code" maxLength={6} />
+        <div className="mt-4 space-y-3">
+          {loadingTeams ? (
+            <p className="text-sm text-slate-500">Loading teams…</p>
+          ) : teams.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+              <p className="text-sm font-medium text-slate-700">No teams yet!</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Be the first — create a team and invite your coworkers.
+              </p>
+            </div>
+          ) : (
+            <ul className="max-h-64 space-y-2 overflow-y-auto">
+              {teams.map((t) => (
+                <li key={t.id}>
+                  <button
+                    onClick={() => joinTeam(t.id)}
+                    disabled={busy}
+                    className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{t.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {t.member_count} member{t.member_count === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold text-emerald-700">Join →</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={busy} className={btn}>{busy ? "Joining…" : "Join team"}</button>
-          <button type="button" onClick={() => setMode("choose")} className="w-full py-1 text-sm text-slate-500">← Back</button>
-        </form>
+          <button
+            type="button"
+            onClick={() => setMode("choose")}
+            className="w-full py-1 text-sm text-slate-500"
+          >
+            ← Back
+          </button>
+        </div>
       )}
     </div>
   );
