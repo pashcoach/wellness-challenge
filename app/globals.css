@@ -57,8 +57,7 @@ textarea::placeholder {
   height: 100%;
   object-fit: cover;
   border-radius: 18px;
-  mix-blend-mode: screen;
-  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.4)) brightness(1.1);
   user-select: none;
 }
 

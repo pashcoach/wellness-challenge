@@ -10,9 +10,11 @@ const ICONS = [
   "yoga",
   "hiker",
   "strength",
+  "kettlebell",
   "dancer",
   "hockey",
   "golfer",
+  "kids",
 ];
 
 interface Floater {
