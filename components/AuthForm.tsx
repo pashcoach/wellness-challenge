@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { CHALLENGE } from "@/lib/constants";
+import BrandMark from "./BrandMark";
 
 export default function AuthForm() {
   const { signIn, signUp, configured } = useAuth();
@@ -52,7 +53,13 @@ export default function AuthForm() {
 
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
-      <h1 className="text-xl font-bold text-emerald-800">{CHALLENGE.name}</h1>
+      <div className="flex items-center gap-3">
+        <BrandMark size={44} />
+        <div>
+          <h1 className="text-lg font-bold leading-tight text-emerald-800">{CHALLENGE.name}</h1>
+          <p className="text-xs text-slate-500">Co-op Refinery Complex</p>
+        </div>
+      </div>
       <p className="mt-1 text-sm text-slate-600">
         October 5 – 30, 2026 · Earn points, win prizes, feel great.
       </p>

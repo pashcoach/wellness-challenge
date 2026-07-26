@@ -11,6 +11,7 @@ import {
 import ActivityForm from "./ActivityForm";
 import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
+import BrandMark from "./BrandMark";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -42,12 +43,15 @@ export default function Dashboard() {
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
       {/* Header */}
       <header className="flex items-center justify-between py-4">
-        <div>
-          <h1 className="text-lg font-bold text-emerald-800">{CHALLENGE.name}</h1>
-          <p className="text-xs text-slate-500">
-            Hi {profile.full_name.split(" ")[0]} · {profile.business_unit}
-            {profile.located_at_crc ? " · CRC" : ""}
-          </p>
+        <div className="flex items-center gap-3">
+          <BrandMark size={36} />
+          <div>
+            <h1 className="text-lg font-bold text-emerald-800">{CHALLENGE.name}</h1>
+            <p className="text-xs text-slate-500">
+              Hi {profile.full_name.split(" ")[0]} · {profile.business_unit}
+              {profile.located_at_crc ? " · CRC" : ""}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {profile.is_admin && (

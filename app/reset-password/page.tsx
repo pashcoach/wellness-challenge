@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CHALLENGE } from "@/lib/constants";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
+import BrandMark from "@/components/BrandMark";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -48,8 +49,14 @@ export default function ResetPasswordPage() {
     <main className="relative flex min-h-screen items-center justify-center p-4">
       <ActivityBackdrop />
       <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg">
-        <h1 className="text-xl font-bold text-emerald-800">{CHALLENGE.name}</h1>
-        <p className="mt-1 text-sm text-slate-600">Choose a new password</p>
+        <div className="flex items-center gap-3">
+          <BrandMark size={44} />
+          <div>
+            <h1 className="text-lg font-bold leading-tight text-emerald-800">{CHALLENGE.name}</h1>
+            <p className="text-xs text-slate-500">Co-op Refinery Complex</p>
+          </div>
+        </div>
+        <p className="mt-3 text-sm text-slate-600">Choose a new password</p>
         {ready ? (
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <input
