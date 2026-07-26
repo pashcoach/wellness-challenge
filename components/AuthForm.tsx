@@ -57,7 +57,7 @@ export default function AuthForm() {
         <BrandMark size={44} />
         <div>
           <h1 className="text-lg font-bold leading-tight text-emerald-800">{CHALLENGE.name}</h1>
-          <p className="text-xs text-slate-500">Co-op Refinery Complex</p>
+          <p className="text-xs text-slate-500">{CHALLENGE.org}</p>
         </div>
       </div>
       <p className="mt-1 text-sm text-slate-600">

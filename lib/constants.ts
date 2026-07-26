@@ -1,5 +1,6 @@
 export const CHALLENGE = {
-  name: "FCL CRC Wellness Challenge 2026",
+  name: "Wellness Challenge 2026",
+  org: "Federated Co-operatives Limited",
   startDate: "2026-10-05",
   endDate: "2026-10-30",
   weeklyPointGoal: 140,
