@@ -2,22 +2,17 @@
 
 import { useEffect, useState } from "react";
 
-// Realistic full-color activity icons (OpenMoji, CC BY-SA 4.0)
+// Photorealistic activity cutouts (AI-generated on matching dark green)
 const ICONS = [
   "runner",
   "cyclist",
   "swimmer",
   "yoga",
-  "weightlifter",
-  "hiking",
+  "hiker",
+  "strength",
   "dancer",
-  "basketball",
-  "soccer",
-  "tennis",
-  "volleyball",
-  "golf",
   "hockey",
-  "meditation",
+  "golfer",
 ];
 
 interface Floater {
@@ -36,14 +31,14 @@ export default function ActivityBackdrop() {
 
   useEffect(() => {
     // Generate on client only to avoid hydration mismatch
-    const items: Floater[] = Array.from({ length: 14 }, (_, i) => ({
+    const items: Floater[] = Array.from({ length: 12 }, (_, i) => ({
       id: i,
       icon: ICONS[i % ICONS.length],
-      left: Math.random() * 92,
-      size: 72 + Math.random() * 72, // 72–144px — large and clearly visible
-      duration: 18 + Math.random() * 16,
-      delay: -Math.random() * 34,
-      opacity: 0.55 + Math.random() * 0.35,
+      left: Math.random() * 88,
+      size: 90 + Math.random() * 80, // 90–170px — large and clearly visible
+      duration: 20 + Math.random() * 16,
+      delay: -Math.random() * 36,
+      opacity: 0.6 + Math.random() * 0.35,
       drift: 20 + Math.random() * 60,
     }));
     setFloaters(items);
@@ -79,7 +74,7 @@ export default function ActivityBackdrop() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`/brand/icons/${f.icon}.svg`}
+            src={`/brand/people/${f.icon}.png`}
             alt=""
             width={f.size}
             height={f.size}
