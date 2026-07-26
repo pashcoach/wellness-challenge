@@ -12,6 +12,7 @@ import {
 import ActivityForm from "./ActivityForm";
 import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
+import EntriesManager from "./EntriesManager";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
 
@@ -20,6 +21,12 @@ export default function Dashboard() {
   const { profile } = useProfile();
   const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
+  const [lbRefreshKey, setLbRefreshKey] = useState(0);
+
+  const handleDataChanged = () => {
+    refresh();
+    setLbRefreshKey((k) => k + 1);
+  };
 
   if (!profile) return null;
 
@@ -137,32 +144,22 @@ export default function Dashboard() {
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-3 font-bold">🏃 Log physical activity</h2>
-          <ActivityForm profile={profile} onLogged={refresh} />
+          <ActivityForm profile={profile} onLogged={handleDataChanged} />
         </div>
         <div className="space-y-4">
           <WellnessCheckin
             profile={profile}
             week={displayWeek}
             existing={checkins.find((c) => c.week === displayWeek)}
-            onLogged={refresh}
+            onLogged={handleDataChanged}
           />
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <h2 className="mb-2 font-bold">This week&apos;s entries</h2>
-            {weekActivities.length === 0 ? (
-              <p className="text-sm text-slate-500">Nothing logged yet this week.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100 text-sm">
-                {weekActivities.map((a) => (
-                  <li key={a.id} className="flex items-center justify-between py-2">
-                    <span>
-                      {a.activity} · {a.minutes} min
-                      <span className="ml-2 text-xs text-slate-400">{a.entry_date}</span>
-                    </span>
-                    <span className="font-semibold text-emerald-700">+{a.points}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <EntriesManager
+              activities={weekActivities}
+              checkins={checkins.filter((c) => c.week === displayWeek)}
+              onChanged={handleDataChanged}
+            />
           </div>
         </div>
       </div>
@@ -170,7 +167,7 @@ export default function Dashboard() {
       {/* Leaderboard */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-3 font-bold">🏆 Leaderboards</h2>
-        <Leaderboard />
+        <Leaderboard key={lbRefreshKey} />
       </div>
     </div>
   );

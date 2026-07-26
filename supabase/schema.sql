@@ -83,11 +83,13 @@ create policy "teams_insert_auth" on teams for insert with check (auth.uid() is 
 -- Activity entries: read all (leaderboards), write own
 create policy "activity_read_all" on activity_entries for select using (true);
 create policy "activity_insert_own" on activity_entries for insert with check (auth.uid() = user_id);
+create policy "activity_update_own" on activity_entries for update using (auth.uid() = user_id);
 create policy "activity_delete_own" on activity_entries for delete using (auth.uid() = user_id);
 
 -- Wellness check-ins: read all, write own
 create policy "checkins_read_all" on wellness_checkins for select using (true);
 create policy "checkins_insert_own" on wellness_checkins for insert with check (auth.uid() = user_id);
+create policy "checkins_delete_own" on wellness_checkins for delete using (auth.uid() = user_id);
 
 -- Survey: write own, read own (admins read via service role / export)
 create policy "survey_insert_own" on survey_responses for insert with check (auth.uid() = user_id);
