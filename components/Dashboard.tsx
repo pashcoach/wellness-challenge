@@ -12,7 +12,6 @@ import {
 import ActivityForm from "./ActivityForm";
 import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
-import EntriesManager from "./EntriesManager";
 import EntryLog from "./EntryLog";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
@@ -154,19 +153,13 @@ export default function Dashboard() {
             existing={checkins.find((c) => c.week === displayWeek)}
             onLogged={handleDataChanged}
           />
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <h2 className="mb-2 font-bold">This week&apos;s entries</h2>
-            <EntriesManager
-              activities={weekActivities}
-              checkins={checkins.filter((c) => c.week === displayWeek)}
-              onChanged={handleDataChanged}
-            />
-          </div>
         </div>
       </div>
 
       {/* Entry log */}
-      <EntryLog activities={activities} checkins={checkins} />
+      <div className="mt-6">
+        <EntryLog activities={activities} checkins={checkins} onChanged={handleDataChanged} />
+      </div>
 
       {/* Leaderboard */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
