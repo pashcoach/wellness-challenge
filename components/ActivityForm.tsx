@@ -14,6 +14,8 @@ export default function ActivityForm({
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [activity, setActivity] = useState("");
+  const [otherActivity, setOtherActivity] = useState("");
+  const [showOtherPopup, setShowOtherPopup] = useState(false);
   const [minutes, setMinutes] = useState("");
   const [date, setDate] = useState(today);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +25,15 @@ export default function ActivityForm({
   const mins = parseInt(minutes, 10);
   const pts = !isNaN(mins) && mins > 0 ? pointsForMinutes(mins) : 0;
   const week = getChallengeWeek(date);
+  const isOther = activity === "Other";
+
+  function handleActivityChange(value: string) {
+    setActivity(value);
+    if (value === "Other") {
+      setOtherActivity("");
+      setShowOtherPopup(true);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,11 +46,16 @@ export default function ActivityForm({
       setError("Pick an activity.");
       return;
     }
+    if (isOther && !otherActivity.trim()) {
+      setShowOtherPopup(true);
+      return;
+    }
+    const activityLabel = isOther ? otherActivity.trim() : activity;
     setBusy(true);
     setError(null);
     const { error } = await supabase.from("activity_entries").insert({
       user_id: profile.id,
-      activity,
+      activity: activityLabel,
       minutes: mins,
       points: pts,
       entry_date: date,
@@ -50,6 +66,7 @@ export default function ActivityForm({
     else {
       setSaved(true);
       setActivity("");
+      setOtherActivity("");
       setMinutes("");
       setTimeout(() => setSaved(false), 2500);
       onLogged();
@@ -63,12 +80,21 @@ export default function ActivityForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="mb-1 block text-sm font-medium">What did you do?</label>
-        <select value={activity} onChange={(e) => setActivity(e.target.value)} className={input} required>
+        <select value={activity} onChange={(e) => handleActivityChange(e.target.value)} className={input} required>
           <option value="">Choose an activity…</option>
           {ACTIVITIES.map((a) => (
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
+        {isOther && otherActivity && (
+          <button
+            type="button"
+            onClick={() => setShowOtherPopup(true)}
+            className="mt-1 text-xs font-medium text-emerald-700 underline"
+          >
+            ✏️ {otherActivity} (edit)
+          </button>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -113,6 +139,53 @@ export default function ActivityForm({
       >
         {busy ? "Saving…" : "Log activity"}
       </button>
+
+      {/* Other activity popup */}
+      {showOtherPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="font-bold text-slate-800">What activity did you do?</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Anything counts — gardening, skateboarding, walking the dog… it all adds up!
+            </p>
+            <input
+              autoFocus
+              type="text"
+              value={otherActivity}
+              onChange={(e) => setOtherActivity(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && otherActivity.trim()) {
+                  e.preventDefault();
+                  setShowOtherPopup(false);
+                }
+              }}
+              placeholder="e.g. Skateboarding"
+              className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+            />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOtherPopup(false);
+                  setActivity("");
+                  setOtherActivity("");
+                }}
+                className="rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!otherActivity.trim()}
+                onClick={() => setShowOtherPopup(false)}
+                className="rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
