@@ -15,6 +15,8 @@ const ICONS = [
   "hockey",
   "golfer",
   "kids",
+  "frisbee",
+  "yardwork",
 ];
 
 interface Floater {
@@ -33,7 +35,7 @@ export default function ActivityBackdrop() {
 
   useEffect(() => {
     // Generate on client only to avoid hydration mismatch
-    const items: Floater[] = Array.from({ length: 12 }, (_, i) => ({
+    const items: Floater[] = Array.from({ length: 13 }, (_, i) => ({
       id: i,
       icon: ICONS[i % ICONS.length],
       left: Math.random() * 88,
