@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useMyData, useProfile } from "@/lib/data";
 import {
@@ -14,6 +14,7 @@ import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
 import EntryLog from "./EntryLog";
 import FeedbackButton from "./FeedbackButton";
+import WelcomeVideo from "./WelcomeVideo";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
 
@@ -23,6 +24,13 @@ export default function Dashboard() {
   const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeChecked, setWelcomeChecked] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem("welcomeSeen")) setShowWelcome(true);
+    setWelcomeChecked(true);
+  }, []);
 
   const handleDataChanged = () => {
     refresh();
@@ -30,6 +38,10 @@ export default function Dashboard() {
   };
 
   if (!profile) return null;
+
+  if (welcomeChecked && showWelcome) {
+    return <WelcomeVideo onDone={() => setShowWelcome(false)} />;
+  }
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const weekNow = currentChallengeWeek();
