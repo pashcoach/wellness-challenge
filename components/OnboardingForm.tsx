@@ -12,7 +12,8 @@ export default function OnboardingForm({
   userId: string;
   onDone: (p: Profile) => void;
 }) {
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [bu, setBu] = useState("");
   const [atCrc, setAtCrc] = useState<boolean | null>(null);
@@ -32,7 +33,7 @@ export default function OnboardingForm({
       .from("profiles")
       .insert({
         id: userId,
-        full_name: fullName.trim(),
+        full_name: `${firstName.trim()} ${lastName.trim()}`,
         username: username.trim() || null,
         business_unit: bu,
         located_at_crc: atCrc,
@@ -53,9 +54,15 @@ export default function OnboardingForm({
       <h2 className="text-lg font-bold text-emerald-800">Welcome! Tell us about you</h2>
       <p className="mt-1 text-sm text-slate-600">This only takes a minute — you only do it once.</p>
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium">Your name</label>
-          <input required value={fullName} onChange={(e) => setFullName(e.target.value)} className={input} placeholder="First and last name" />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">First name</label>
+            <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={input} placeholder="First name" />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Last name</label>
+            <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={input} placeholder="Last name" />
+          </div>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">
