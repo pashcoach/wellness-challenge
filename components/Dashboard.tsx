@@ -14,6 +14,7 @@ import WellnessCheckin from "./WellnessCheckin";
 import Leaderboard from "./Leaderboard";
 import EntryLog from "./EntryLog";
 import FeedbackButton from "./FeedbackButton";
+import SoloTeamCard from "./SoloTeamCard";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
 
@@ -141,11 +142,7 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <p className="text-sm text-slate-600">
-            You&apos;re flying solo.{" "}
-            <span className="font-medium text-emerald-700">Tip: team members averaged twice the points last year!</span>{" "}
-            Sign out and back in to create or join a team.
-          </p>
+          <SoloTeamCard profile={profile} onJoined={handleDataChanged} />
         )}
       </div>
 
