@@ -1,6 +1,6 @@
-# FCL CRC Wellness Challenge 2026
+# Wellness Challenge 2026
 
-A mobile- and desktop-friendly web app for the annual FCL CRC Wellness Challenge
+A mobile- and desktop-friendly web app for the annual Wellness Challenge
 (October 5–30, 2026). Replaces the Glide app — self-hosted, near-zero running cost.
 
 ## What it does
