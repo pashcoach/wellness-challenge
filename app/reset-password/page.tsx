@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/errors";
 import { CHALLENGE } from "@/lib/constants";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import BrandMark from "@/components/BrandMark";
@@ -38,7 +39,7 @@ export default function ResetPasswordPage() {
     setError(null);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(friendlyError(error));
     else router.push("/");
   }
 

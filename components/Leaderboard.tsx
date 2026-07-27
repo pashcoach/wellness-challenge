@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { CHALLENGE, currentChallengeWeek } from "@/lib/constants";
-import { displayName } from "@/lib/data";
+import { currentChallengeWeek } from "@/lib/constants";
 
 interface PersonRow {
   id: string;
-  name: string;
+  display_name: string;
   team_name: string | null;
+  w1: number;
+  w2: number;
+  w3: number;
+  w4: number;
   total: number;
-  weekly: number[];
 }
 
 interface TeamRow {
@@ -36,50 +38,12 @@ export default function Leaderboard() {
       setLoading(false);
       return;
     }
-    const [profiles, activities, checkins, teamRows] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, username, team_id"),
-      supabase.from("activity_entries").select("user_id, points, week"),
-      supabase.from("wellness_checkins").select("user_id, points, week"),
-      supabase.from("teams").select("id, name"),
+    const [peopleRes, teamsRes] = await Promise.all([
+      supabase.from("leaderboard_totals").select("*").order("total", { ascending: false }),
+      supabase.from("team_standings").select("*").order("avg", { ascending: false }),
     ]);
-
-    const teamNames = new Map((teamRows.data ?? []).map((t) => [t.id, t.name]));
-    const totals = new Map<string, { total: number; weekly: number[] }>();
-
-    function add(userId: string, points: number, week: number) {
-      const rec = totals.get(userId) ?? { total: 0, weekly: [0, 0, 0, 0, 0] };
-      rec.total += points;
-      if (week >= 1 && week <= 4) rec.weekly[week] += points;
-      totals.set(userId, rec);
-    }
-    for (const a of activities.data ?? []) add(a.user_id, a.points, a.week);
-    for (const c of checkins.data ?? []) add(c.user_id, c.points, c.week);
-
-    const personRows: PersonRow[] = (profiles.data ?? []).map((p) => ({
-      id: p.id,
-      name: displayName(p),
-      team_name: p.team_id ? teamNames.get(p.team_id) ?? null : null,
-      total: totals.get(p.id)?.total ?? 0,
-      weekly: totals.get(p.id)?.weekly ?? [0, 0, 0, 0, 0],
-    }));
-    personRows.sort((a, b) => b.total - a.total);
-    setPeople(personRows);
-
-    const byTeam = new Map<string, number[]>();
-    for (const p of profiles.data ?? []) {
-      if (!p.team_id) continue;
-      const arr = byTeam.get(p.team_id) ?? [];
-      arr.push(totals.get(p.id)?.total ?? 0);
-      byTeam.set(p.team_id, arr);
-    }
-    const teamList: TeamRow[] = [...byTeam.entries()].map(([id, pts]) => ({
-      id,
-      name: teamNames.get(id) ?? "Team",
-      members: pts.length,
-      avg: Math.round(pts.reduce((s, v) => s + v, 0) / pts.length),
-    }));
-    teamList.sort((a, b) => b.avg - a.avg);
-    setTeams(teamList);
+    setPeople((peopleRes.data as PersonRow[]) ?? []);
+    setTeams((teamsRes.data as TeamRow[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -88,7 +52,10 @@ export default function Leaderboard() {
   }, [load]);
 
   const weeklySorted = useMemo(
-    () => [...people].sort((a, b) => b.weekly[selectedWeek] - a.weekly[selectedWeek]),
+    () =>
+      [...people].sort(
+        (a, b) => (b[`w${selectedWeek}` as keyof PersonRow] as number) - (a[`w${selectedWeek}` as keyof PersonRow] as number)
+      ),
     [people, selectedWeek]
   );
 
@@ -139,7 +106,7 @@ export default function Leaderboard() {
               <div className="flex items-center gap-3">
                 <span className="w-7 text-center text-lg">{MEDALS[i] ?? `${i + 1}.`}</span>
                 <div>
-                  <p className="text-sm font-semibold">{p.name}</p>
+                  <p className="text-sm font-semibold">{p.display_name}</p>
                   {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
                 </div>
               </div>
@@ -174,27 +141,30 @@ export default function Leaderboard() {
             weekly prize draw!
           </p>
           <ol className="space-y-2">
-            {weeklySorted.map((p, i) => (
-              <li
-                key={p.id}
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                  i === 0 && p.weekly[selectedWeek] > 0
-                    ? "border-amber-300 bg-amber-50"
-                    : "border-slate-200 bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-7 text-center text-lg">{MEDALS[i] ?? `${i + 1}.`}</span>
-                  <div>
-                    <p className="text-sm font-semibold">{p.name}</p>
-                    {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
+            {weeklySorted.map((p, i) => {
+              const weekPts = p[`w${selectedWeek}` as keyof PersonRow] as number;
+              return (
+                <li
+                  key={p.id}
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                    i === 0 && weekPts > 0
+                      ? "border-amber-300 bg-amber-50"
+                      : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 text-center text-lg">{MEDALS[i] ?? `${i + 1}.`}</span>
+                    <div>
+                      <p className="text-sm font-semibold">{p.display_name}</p>
+                      {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
+                    </div>
                   </div>
-                </div>
-                <p className="text-sm font-bold text-emerald-800">
-                  {p.weekly[selectedWeek].toLocaleString()} pts
-                </p>
-              </li>
-            ))}
+                  <p className="text-sm font-bold text-emerald-800">
+                    {weekPts.toLocaleString()} pts
+                  </p>
+                </li>
+              );
+            })}
           </ol>
         </div>
       )}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/errors";
 import { CHALLENGE } from "@/lib/constants";
 import BrandMark from "./BrandMark";
 
@@ -49,7 +50,7 @@ export default function AuthForm() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(friendlyError(error));
     else setNotice("Password reset email sent! Check your inbox (and spam folder).");
   }
 

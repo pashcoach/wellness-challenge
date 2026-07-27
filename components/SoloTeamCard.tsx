@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 
@@ -51,15 +52,14 @@ export default function SoloTeamCard({
     if (!supabase) return;
     setBusy(true);
     setError(null);
-    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
     const { data: team, error: tErr } = await supabase
       .from("teams")
-      .insert({ name: teamName.trim(), join_code: code, created_by: profile.id })
+      .insert({ name: teamName.trim(), created_by: profile.id })
       .select()
       .single();
     if (tErr || !team) {
       setBusy(false);
-      setError(tErr?.message ?? "Could not create team.");
+      setError(tErr ? friendlyError(tErr) : "Could not create team.");
       return;
     }
     const { error: pErr } = await supabase
@@ -67,7 +67,7 @@ export default function SoloTeamCard({
       .update({ team_id: team.id })
       .eq("id", profile.id);
     setBusy(false);
-    if (pErr) setError(pErr.message);
+    if (pErr) setError(friendlyError(pErr));
     else {
       setToast(`Team "${team.name}" created — you're in!`);
       onJoined();
@@ -83,7 +83,7 @@ export default function SoloTeamCard({
       .update({ team_id: t.id })
       .eq("id", profile.id);
     setBusy(false);
-    if (pErr) setError(pErr.message);
+    if (pErr) setError(friendlyError(pErr));
     else {
       setToast(`Welcome to "${t.name}"!`);
       onJoined();

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { ACTIVITIES, CHALLENGE, getChallengeWeek, pointsForMinutes } from "@/lib/constants";
+import { ACTIVITIES, CHALLENGE, getChallengeWeek, pointsForMinutes, todayIso } from "@/lib/constants";
+import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 
@@ -13,7 +14,7 @@ export default function ActivityForm({
   profile: Profile;
   onLogged: () => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const [activity, setActivity] = useState("");
   const [otherActivity, setOtherActivity] = useState("");
   const [showOtherPopup, setShowOtherPopup] = useState(false);
@@ -63,7 +64,7 @@ export default function ActivityForm({
       week,
     });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(friendlyError(error));
     else {
       setToast(`${activityLabel} · ${mins} min · +${pts} pts confirmed!`);
       setActivity("");

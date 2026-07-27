@@ -155,7 +155,15 @@ export function pillarForWeek(week: number) {
   return PILLARS[Math.min(4, Math.max(1, week)) - 1];
 }
 
+/** Today's date in YYYY-MM-DD using local (America/Regina) timezone.
+ *  Saskatchewan is UTC-6 year-round (no DST). Using Date's local methods
+ *  avoids the 6pm rollover bug where .toISOString() advances to tomorrow. */
+export function todayIso(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export function currentChallengeWeek(today = new Date()): number | null {
-  const iso = today.toISOString().slice(0, 10);
+  const iso = todayIso(today);
   return getChallengeWeek(iso);
 }

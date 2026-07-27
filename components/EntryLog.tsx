@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { ACTIVITIES, CHALLENGE, getChallengeWeek, pillarForWeek, pointsForMinutes } from "@/lib/constants";
+import { friendlyError } from "@/lib/errors";
 import type { ActivityEntry, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
 
@@ -106,7 +107,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
       .eq("id", editing.id);
     setBusy(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyError(error));
       return;
     }
     setEditing(null);
@@ -121,7 +122,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
     const { error } = await supabase.from(table).delete().eq("id", deleting.id);
     setBusy(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyError(error));
       setDeleting(null);
       return;
     }

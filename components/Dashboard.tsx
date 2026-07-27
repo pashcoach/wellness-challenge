@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { useMyData, useProfile } from "@/lib/data";
+import { useMyData } from "@/lib/data";
 import {
   CHALLENGE,
   currentChallengeWeek,
   getChallengeWeek,
   pillarForWeek,
+  todayIso,
 } from "@/lib/constants";
 import ActivityForm from "./ActivityForm";
 import WellnessCheckin from "./WellnessCheckin";
@@ -17,25 +18,32 @@ import FeedbackButton from "./FeedbackButton";
 import SoloTeamCard from "./SoloTeamCard";
 import SectionSeparator from "./SectionSeparator";
 import BrandMark from "./BrandMark";
+import type { Profile } from "@/lib/data";
 import Link from "next/link";
 
-export default function Dashboard() {
+export default function Dashboard({
+  profile,
+  onProfileChange,
+}: {
+  profile: Profile;
+  onProfileChange: () => void;
+}) {
   const { signOut } = useAuth();
-  const { profile } = useProfile();
   const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
 
   const handleDataChanged = () => {
     refresh();
+    onProfileChange();
     setLbRefreshKey((k) => k + 1);
   };
 
   if (!profile) return null;
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIsoStr = todayIso();
   const weekNow = currentChallengeWeek();
-  const preChallenge = todayIso < CHALLENGE.startDate;
+  const preChallenge = todayIsoStr < CHALLENGE.startDate;
   const displayWeek = weekNow ?? (preChallenge ? 1 : 4);
   const pillar = pillarForWeek(displayWeek);
 
@@ -113,10 +121,28 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Check-in nudge banner — shows when weekly check-in hasn't been done yet */}
+      {!checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
+        <div
+          onClick={() =>
+            document.getElementById("wellness-checkin-section")?.scrollIntoView({ behavior: "smooth" })
+          }
+          className="mt-4 cursor-pointer rounded-xl border border-amber-200 bg-amber-50 p-4 transition-colors hover:border-amber-300 hover:bg-amber-100"
+        >
+          <p className="text-sm font-semibold text-amber-900">
+            💚 Week {displayWeek} check-in not done yet!
+          </p>
+          <p className="mt-0.5 text-xs text-amber-800">
+            Tap here to log your weekly wellness check-in worth {CHALLENGE.wellnessCheckInPoints} points.
+            Missed weeks are gone forever.
+          </p>
+        </div>
+      )}
+
       <SectionSeparator label="Log activity" icon="🏃" />
 
       {/* Log + check-in */}
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div id="wellness-checkin-section" className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-3 font-bold">🏃 Log physical activity</h2>
           <ActivityForm profile={profile} onLogged={handleDataChanged} />

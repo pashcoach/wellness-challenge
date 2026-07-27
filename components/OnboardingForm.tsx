@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/errors";
 import { AGE_RANGES, BUSINESS_UNITS } from "@/lib/constants";
 import type { Profile } from "@/lib/data";
 
@@ -42,7 +43,7 @@ export default function OnboardingForm({
       .select()
       .single();
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(friendlyError(error));
     else onDone(data as Profile);
   }
 

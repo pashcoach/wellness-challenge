@@ -19,7 +19,7 @@ alter table profiles add column if not exists username text;
 create table if not exists teams (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  join_code text not null unique,
+  join_code text not null unique default gen_join_code(),
   created_by uuid references profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );

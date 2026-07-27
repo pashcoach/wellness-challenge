@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 
@@ -23,7 +24,7 @@ export default function FeedbackButton({ profile }: { profile: Profile }) {
     });
     setBusy(false);
     if (error) {
-      setError(error.message);
+      setError(friendlyError(error));
       return;
     }
     setOpen(false);

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { CHALLENGE, WELLNESS_ACTIVITIES, pillarForWeek } from "@/lib/constants";
+import { CHALLENGE, WELLNESS_ACTIVITIES, pillarForWeek, todayIso } from "@/lib/constants";
+import { friendlyError } from "@/lib/errors";
 import type { Profile, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
 
@@ -24,7 +25,7 @@ export default function WellnessCheckin({
   const [toast, setToast] = useState<string | null>(null);
 
   const pillar = pillarForWeek(week);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const isOther = choice === "Other";
 
   async function handleCheck(e: React.FormEvent) {
@@ -49,7 +50,7 @@ export default function WellnessCheckin({
       entry_date: today,
     });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(friendlyError(error));
     else {
       setToast(`${isOther ? otherText.trim() : choice} · +${CHALLENGE.wellnessCheckInPoints} pts confirmed!`);
       onLogged();
