@@ -7,6 +7,7 @@ import OnboardingForm from "@/components/OnboardingForm";
 import TeamSetup from "@/components/TeamSetup";
 import Dashboard from "@/components/Dashboard";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
+import WelcomeVideo from "@/components/WelcomeVideo";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -14,11 +15,19 @@ export default function Home() {
   const { session, loading } = useAuth();
   const { profile, loading: profileLoading, refresh } = useProfile();
   const [teamChecked, setTeamChecked] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeChecked, setWelcomeChecked] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     if (profile?.team_id) setTeamChecked(true);
   }, [profile?.team_id]);
+
+  useEffect(() => {
+    // Welcome video shows once per device, right after onboarding/team setup
+    if (!localStorage.getItem("welcomeSeen")) setShowWelcome(true);
+    setWelcomeChecked(true);
+  }, []);
 
   if (loading || (session && profileLoading)) {
     return (
@@ -66,6 +75,11 @@ export default function Home() {
         </div>
       </main>
     );
+  }
+
+  // Welcome video gate — after onboarding + team setup, before first dashboard view
+  if (welcomeChecked && showWelcome) {
+    return <WelcomeVideo onDone={() => setShowWelcome(false)} />;
   }
 
   return (
