@@ -15,6 +15,7 @@ import Leaderboard from "./Leaderboard";
 import EntryLog from "./EntryLog";
 import FeedbackButton from "./FeedbackButton";
 import SoloTeamCard from "./SoloTeamCard";
+import SectionSeparator from "./SectionSeparator";
 import BrandMark from "./BrandMark";
 import Link from "next/link";
 
@@ -112,6 +113,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <SectionSeparator label="Log activity" icon="🏃" />
+
       {/* Log + check-in */}
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -127,6 +130,8 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      <SectionSeparator label="Team" icon="🤝" />
 
       {/* Team card */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
@@ -162,10 +167,14 @@ export default function Dashboard() {
         )}
       </div>
 
+      <SectionSeparator label="My log" icon="📒" />
+
       {/* Entry log */}
       <div className="mt-6">
         <EntryLog activities={activities} checkins={checkins} onChanged={handleDataChanged} />
       </div>
+
+      <SectionSeparator label="Leaderboard" icon="🏆" />
 
       {/* Leaderboard */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
