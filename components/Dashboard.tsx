@@ -112,8 +112,24 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Log + check-in */}
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h2 className="mb-3 font-bold">🏃 Log physical activity</h2>
+          <ActivityForm profile={profile} onLogged={handleDataChanged} />
+        </div>
+        <div className="space-y-4">
+          <WellnessCheckin
+            profile={profile}
+            week={displayWeek}
+            existing={checkins.find((c) => c.week === displayWeek)}
+            onLogged={handleDataChanged}
+          />
+        </div>
+      </div>
+
       {/* Team card */}
-      <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         {team ? (
           <div>
             <div className="flex items-center justify-between">
@@ -144,22 +160,6 @@ export default function Dashboard() {
         ) : (
           <SoloTeamCard profile={profile} onJoined={handleDataChanged} />
         )}
-      </div>
-
-      {/* Log + check-in */}
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-bold">🏃 Log physical activity</h2>
-          <ActivityForm profile={profile} onLogged={handleDataChanged} />
-        </div>
-        <div className="space-y-4">
-          <WellnessCheckin
-            profile={profile}
-            week={displayWeek}
-            existing={checkins.find((c) => c.week === displayWeek)}
-            onLogged={handleDataChanged}
-          />
-        </div>
       </div>
 
       {/* Entry log */}
