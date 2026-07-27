@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Wellness Challenge 2026 | Federated Co-operatives Limited",
   description: "Track your wellness activities, earn points, and win prizes with your team.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Allow rotation — the layout is responsive in both orientations
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
