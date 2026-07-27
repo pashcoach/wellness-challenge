@@ -16,11 +16,9 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
   function start() {
     setStarted(true);
     if (videoRef.current) {
-      // User gesture lets us start WITH sound
       videoRef.current.muted = false;
       setMuted(false);
       videoRef.current.play().catch(() => {
-        // If unmuted play is blocked, fall back to muted
         if (videoRef.current) {
           videoRef.current.muted = true;
           setMuted(true);
@@ -45,34 +43,47 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-emerald-950/95">
-      <div className="flex min-h-full items-center justify-center p-3 sm:p-4">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl landscape:max-w-4xl sm:p-5">
-          <div className="landscape:flex landscape:items-center landscape:gap-5">
-            {/* Header — moves beside video in landscape */}
-            <div className="mb-3 flex items-center gap-3 landscape:mb-0 landscape:w-64 landscape:shrink-0 landscape:flex-col landscape:items-start">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/95">
+      <div className="flex h-full w-full flex-col p-3 sm:p-4 landscape:justify-center">
+        <div
+          /* max-w-lg on portrait, full on landscape */
+          className={
+            "mx-auto w-full rounded-2xl bg-white shadow-2xl " +
+            "max-w-md landscape:max-w-[95vw] landscape:lg:max-w-5xl p-4 sm:p-5"
+          }
+        >
+          <div className="gap-4 landscape:flex landscape:items-start">
+            {/* Header — compact row in portrait, column sidebar in landscape */}
+            <div
+              className={
+                "mb-3 landscape:mb-0 landscape:w-56 landscape:shrink-0 landscape:pt-1 " +
+                "flex items-center gap-3 landscape:flex-col landscape:items-start"
+              }
+            >
               <BrandMark size={36} />
               <div>
-                <h2 className="font-bold text-emerald-800 landscape:text-xl">
-                  Welcome to the challenge! 👋
+                <h2 className="font-bold text-emerald-800 landscape:text-lg">
+                  Welcome! 👋
                 </h2>
-                <p className="text-xs text-slate-500 landscape:mt-1 landscape:text-sm">
-                  A 60-second tour — subtitled, so sound is optional. Tip: rotate your phone for a
-                  bigger view! 📱↔️
+                <p className="text-xs text-slate-500 landscape:text-xs landscape:mt-1">
+                  A 60-second tour
+                  <br />
+                  <span className="hidden landscape:inline">(voiceover + subtitles)</span>
+                  <span className="landscape:hidden">(subtitled)</span>
                 </p>
               </div>
             </div>
 
-            {/* Video area */}
-            <div className="landscape:flex-1">
-              <div className="relative">
+            {/* Video area — fills remaining space */}
+            <div className="min-w-0 flex-1">
+              <div className="relative mx-auto max-w-full landscape:max-w-3xl">
                 <video
                   ref={videoRef}
                   src="/welcome.mp4"
                   muted={muted}
                   playsInline
                   onEnded={finish}
-                  className="max-h-[50vh] w-full rounded-xl bg-black landscape:max-h-[62vh]"
+                  className="h-auto w-full rounded-xl bg-black object-contain landscape:max-h-[80vh]"
                 />
                 {!started && (
                   <button
@@ -82,8 +93,8 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
                     <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-3xl shadow-lg">
                       ▶
                     </span>
-                    <span className="mt-3 text-sm font-semibold">Tap to play with sound 🔊</span>
-                    <span className="mt-1 text-xs text-white/70">(subtitled — sound optional)</span>
+                    <span className="mt-3 text-sm font-semibold">Tap to play with voiceover 🔊</span>
+                    <span className="mt-1 text-xs text-white/70">(subtitled too)</span>
                   </button>
                 )}
               </div>
