@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
+import { teamJoinCodeFromUuid } from "@/lib/team-code";
 
 interface TeamRow {
   id: string;
@@ -52,9 +53,15 @@ export default function SoloTeamCard({
     if (!supabase) return;
     setBusy(true);
     setError(null);
+    const teamId = crypto.randomUUID();
     const { data: team, error: tErr } = await supabase
       .from("teams")
-      .insert({ name: teamName.trim(), created_by: profile.id })
+      .insert({
+        id: teamId,
+        name: teamName.trim(),
+        join_code: teamJoinCodeFromUuid(teamId),
+        created_by: profile.id,
+      })
       .select()
       .single();
     if (tErr || !team) {
