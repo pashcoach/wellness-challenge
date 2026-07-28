@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useMyData } from "@/lib/data";
+import { computeActivityStreak, computeCheckinStreak } from "@/lib/streaks";
+import { useCelebration } from "@/lib/useCelebration";
 import {
   CHALLENGE,
   currentChallengeWeek,
-  getChallengeWeek,
   pillarForWeek,
   todayIso,
 } from "@/lib/constants";
@@ -18,8 +19,11 @@ import FeedbackButton from "./FeedbackButton";
 import SoloTeamCard from "./SoloTeamCard";
 import SectionSeparator from "./SectionSeparator";
 import BrandMark from "./BrandMark";
+import WeeklyRecap from "./WeeklyRecap";
+import TeamFeed from "./TeamFeed";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
+import { WRAP_UP_GATE_MESSAGE_KEY } from "@/lib/wrap-up";
 
 export default function Dashboard({
   profile,
@@ -29,7 +33,7 @@ export default function Dashboard({
   onProfileChange: () => void;
 }) {
   const { signOut } = useAuth();
-  const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
+  const { activities, checkins, team, loading, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
   const todayIsoStr = todayIso();
@@ -38,6 +42,16 @@ export default function Dashboard({
   const defaultWeek = weekNow ?? (preChallenge ? 1 : 4);
   const [displayWeek, setDisplayWeek] = useState(defaultWeek);
   const pillar = pillarForWeek(displayWeek);
+  const [wrapUpGateMessage, setWrapUpGateMessage] = useState<string | null>(null);
+
+  useCelebration(totalPoints);
+
+  useEffect(() => {
+    const message = sessionStorage.getItem(WRAP_UP_GATE_MESSAGE_KEY);
+    if (!message) return;
+    sessionStorage.removeItem(WRAP_UP_GATE_MESSAGE_KEY);
+    queueMicrotask(() => setWrapUpGateMessage(message));
+  }, []);
 
   const handleDataChanged = () => {
     refresh();
@@ -57,26 +71,18 @@ export default function Dashboard({
   const weekPts = weekActivityPts + weekCheckinPts;
   const weekPct = Math.min(100, Math.round((weekPts / CHALLENGE.weeklyPointGoal) * 100));
   const totalPct = Math.min(100, Math.round((totalPoints / CHALLENGE.totalPointGoal) * 100));
+  const isBrandNew = totalPoints === 0 && activities.length === 0 && checkins.length === 0;
+  const activityStreak = computeActivityStreak(activities);
+  const checkinStreak = computeCheckinStreak(checkins);
 
-  // ---- Streak counter ----
-  // Collect all unique dates with entries, going back from today
-  const entryDates = new Set<string>();
-  for (const a of activities) entryDates.add(a.entry_date);
-  for (const c of checkins) entryDates.add(c.entry_date);
-  let streak = 0;
-  const d = new Date();
-  const dStr = () => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  while (entryDates.has(dStr()) && streak < 60) {
-    streak++;
-    d.setDate(d.getDate() - 1);
-  }
-
-  // ---- Prize eligibility per week ----
+  // Weekly prize eligibility: any activity or check-in in that week qualifies.
   const weeksEntered = new Set<number>();
-  for (const a of activities) if (a.week >= 1 && a.week <= 4) weeksEntered.add(a.week);
-  for (const c of checkins) if (c.week >= 1 && c.week <= 4) weeksEntered.add(c.week);
-
-  const weekActivities = activities.filter((a) => a.week === displayWeek);
+  for (const activity of activities) {
+    if (activity.week >= 1 && activity.week <= 4) weeksEntered.add(activity.week);
+  }
+  for (const checkin of checkins) {
+    if (checkin.week >= 1 && checkin.week <= 4) weeksEntered.add(checkin.week);
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
@@ -89,12 +95,14 @@ export default function Dashboard({
             <p className="text-xs text-slate-500">
               Hi {profile.full_name.split(" ")[0]} · {profile.business_unit}
               {profile.located_at_crc ? " · CRC" : ""}
-              {streak >= 2 && (
-                <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700">
-                  🔥 {streak}-day streak
-                </span>
-              )}
             </p>
+            {(activityStreak.current > 0 || checkinStreak.current > 0) && (
+              <p className="text-xs font-medium text-emerald-700">
+                {activityStreak.current > 0 && `🔥 ${activityStreak.current} day streak`}
+                {activityStreak.current > 0 && checkinStreak.current > 0 && " · "}
+                {checkinStreak.current > 0 && `💚 ${checkinStreak.current} week check-in streak`}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -108,6 +116,20 @@ export default function Dashboard({
           </button>
         </div>
       </header>
+
+      {wrapUpGateMessage && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          <span>🏁 {wrapUpGateMessage}</span>
+          <button
+            type="button"
+            onClick={() => setWrapUpGateMessage(null)}
+            className="shrink-0 text-amber-700 hover:text-amber-950"
+            aria-label="Dismiss message"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {preChallenge && !CHALLENGE.testingMode && (
         <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
@@ -142,26 +164,46 @@ export default function Dashboard({
       </div>
 
       {/* Points summary */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Week {displayWeek} · {pillar.label}
-          </p>
-          <p className="mt-1 text-3xl font-bold text-emerald-800">{weekPts} pts</p>
-          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${weekPct}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.weeklyPointGoal} pts this week</p>
+      {loading ? (
+        <div className="grid animate-pulse grid-cols-1 gap-4 sm:grid-cols-2" aria-label="Loading points summary">
+          {[0, 1].map((card) => (
+            <div key={card} className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="h-3 w-2/3 rounded bg-slate-200" />
+              <div className="mt-3 h-9 w-1/3 rounded-lg bg-slate-200" />
+              <div className="mt-3 h-2.5 w-full rounded-full bg-slate-200" />
+              <div className="mt-2 h-3 w-3/4 rounded bg-slate-200" />
+            </div>
+          ))}
         </div>
+      ) : isBrandNew ? (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Challenge total</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-800">{totalPoints.toLocaleString()} pts</p>
-          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${totalPct}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.totalPointGoal} pts by Oct 30</p>
+          <p className="text-2xl" aria-hidden="true">🌱</p>
+          <h2 className="mt-1 font-bold text-emerald-800">Welcome! Let&apos;s get your challenge started.</h2>
+          <p className="mt-2 text-sm text-slate-600">🏃 Log your first activity</p>
+          <p className="mt-1 text-sm text-slate-600">💚 Complete your first check-in</p>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Week {displayWeek} · {pillar.label}
+            </p>
+            <p className="mt-1 text-3xl font-bold text-emerald-800">{weekPts} pts</p>
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${weekPct}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.weeklyPointGoal} pts this week</p>
+          </div>
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Challenge total</p>
+            <p className="mt-1 text-3xl font-bold text-emerald-800">{totalPoints.toLocaleString()} pts</p>
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${totalPct}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.totalPointGoal} pts by Oct 30</p>
+          </div>
+        </div>
+      )}
 
       {/* Prize eligibility — 4 dots showing which weeks qualify for the draw */}
       <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-5 py-3 shadow-sm">
@@ -254,6 +296,11 @@ export default function Dashboard({
         ) : (
           <SoloTeamCard profile={profile} onJoined={handleDataChanged} />
         )}
+        {profile.team_id && (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <TeamFeed profile={profile} />
+          </div>
+        )}
       </div>
 
       <SectionSeparator label="My log" icon="📒" />
@@ -271,7 +318,28 @@ export default function Dashboard({
         <Leaderboard key={lbRefreshKey} />
       </div>
 
+      {todayIsoStr >= CHALLENGE.endDate && (
+        <div className="mt-6 text-center">
+          <Link
+            href="/wrap-up"
+            className="inline-block rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800"
+          >
+            🏁 View my challenge recap
+          </Link>
+        </div>
+      )}
+
       <FeedbackButton profile={profile} />
+
+      {!loading && !isBrandNew && (
+        <WeeklyRecap
+          activities={activities}
+          checkins={checkins}
+          displayWeek={displayWeek}
+          activityStreak={activityStreak.current}
+          totalPoints={totalPoints}
+        />
+      )}
     </div>
   );
 }

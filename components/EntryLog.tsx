@@ -29,6 +29,8 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
   const [editActivity, setEditActivity] = useState("");
   const [editMinutes, setEditMinutes] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [editingCheckin, setEditingCheckin] = useState<WellnessCheckin | null>(null);
+  const [editComment, setEditComment] = useState("");
   const [deleting, setDeleting] = useState<{ kind: "activity" | "checkin"; id: string; label: string } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,12 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
     setError(null);
   }
 
+  function openCheckinEdit(checkin: WellnessCheckin) {
+    setEditingCheckin(checkin);
+    setEditComment(checkin.comment ?? "");
+    setError(null);
+  }
+
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase || !editing) return;
@@ -112,6 +120,25 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
     }
     setEditing(null);
     setToast("Entry updated — leaderboards refreshed.");
+    onChanged();
+  }
+
+  async function saveCheckinEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase || !editingCheckin) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase
+      .from("wellness_checkins")
+      .update({ comment: editComment.trim() })
+      .eq("id", editingCheckin.id);
+    setBusy(false);
+    if (error) {
+      setError(friendlyError(error));
+      return;
+    }
+    setEditingCheckin(null);
+    setToast("Check-in updated — leaderboards refreshed.");
     onChanged();
   }
 
@@ -174,7 +201,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500">
           {weekFilter === 0
-            ? "No entries yet — your log starts October 5!"
+            ? "🌱 Your log is ready — add an activity or check-in to get started!"
             : `No entries in week ${weekFilter}.`}
         </p>
       ) : (
@@ -192,11 +219,19 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
               </div>
               <span className="flex shrink-0 items-center gap-1.5">
                 <span className="text-sm font-bold text-emerald-700">+{r.points}</span>
-                {r.kind === "activity" && (
+                {r.kind === "activity" ? (
                   <button
                     onClick={() => openEdit(r.raw as ActivityEntry)}
                     className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:border-emerald-400 hover:text-emerald-700"
                     title="Edit entry"
+                  >
+                    ✏️
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => openCheckinEdit(r.raw as WellnessCheckin)}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:border-emerald-400 hover:text-emerald-700"
+                    title="Edit check-in comment"
                   >
                     ✏️
                   </button>
@@ -271,6 +306,44 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
               <button
                 type="button"
                 onClick={() => setEditing(null)}
+                className="rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={busy}
+                className="rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {busy ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Check-in edit modal */}
+      {editingCheckin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <form
+            onSubmit={saveCheckinEdit}
+            className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-xl"
+          >
+            <h3 className="font-bold text-slate-800">Edit check-in comment</h3>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Comment</label>
+              <textarea
+                value={editComment}
+                onChange={(e) => setEditComment(e.target.value)}
+                className={`${input} min-h-24 resize-y`}
+                autoFocus
+              />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingCheckin(null)}
                 className="rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Cancel
