@@ -19,6 +19,7 @@ import FeedbackButton from "./FeedbackButton";
 import SoloTeamCard from "./SoloTeamCard";
 import SectionSeparator from "./SectionSeparator";
 import BrandMark from "./BrandMark";
+import WeeklyRecap from "./WeeklyRecap";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
 
@@ -240,6 +241,16 @@ export default function Dashboard({
       </div>
 
       <FeedbackButton profile={profile} />
+
+      {!loading && !isBrandNew && (
+        <WeeklyRecap
+          activities={activities}
+          checkins={checkins}
+          displayWeek={displayWeek}
+          activityStreak={activityStreak.current}
+          totalPoints={totalPoints}
+        />
+      )}
     </div>
   );
 }
