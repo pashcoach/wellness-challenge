@@ -201,7 +201,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500">
           {weekFilter === 0
-            ? "No entries yet — your log starts October 5!"
+            ? "🌱 Your log is ready — add an activity or check-in to get started!"
             : `No entries in week ${weekFilter}.`}
         </p>
       ) : (

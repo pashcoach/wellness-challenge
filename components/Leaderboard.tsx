@@ -59,7 +59,27 @@ export default function Leaderboard() {
     [people, selectedWeek]
   );
 
-  if (loading) return <p className="text-sm text-slate-500">Loading leaderboard…</p>;
+  if (loading) {
+    return (
+      <ol className="animate-pulse space-y-2" aria-label="Loading leaderboard">
+        {[0, 1, 2].map((row) => (
+          <li
+            key={row}
+            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-full bg-slate-200" />
+              <div>
+                <div className="h-4 w-28 rounded bg-slate-200" />
+                <div className="mt-1.5 h-3 w-20 rounded bg-slate-200" />
+              </div>
+            </div>
+            <div className="h-4 w-16 rounded bg-slate-200" />
+          </li>
+        ))}
+      </ol>
+    );
+  }
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "individual", label: "🏅 Individual" },
@@ -87,9 +107,11 @@ export default function Leaderboard() {
       </div>
 
       {!hasAnyPoints && (
-        <p className="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
-          No points logged yet — the race begins October 5! 🏁
-        </p>
+        <div className="mb-3 rounded-xl bg-emerald-50 px-4 py-3 text-center">
+          <p className="text-lg" aria-hidden="true">🏁</p>
+          <p className="text-sm font-semibold text-emerald-800">The leaderboard is ready!</p>
+          <p className="text-xs text-emerald-700">Log an activity or check-in to claim the first spot.</p>
+        </div>
       )}
 
       {/* Individual — overall cumulative */}

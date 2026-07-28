@@ -6,7 +6,6 @@ import { useMyData } from "@/lib/data";
 import {
   CHALLENGE,
   currentChallengeWeek,
-  getChallengeWeek,
   pillarForWeek,
   todayIso,
 } from "@/lib/constants";
@@ -29,7 +28,7 @@ export default function Dashboard({
   onProfileChange: () => void;
 }) {
   const { signOut } = useAuth();
-  const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
+  const { activities, checkins, team, loading, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
 
@@ -56,8 +55,7 @@ export default function Dashboard({
   const weekPts = weekActivityPts + weekCheckinPts;
   const weekPct = Math.min(100, Math.round((weekPts / CHALLENGE.weeklyPointGoal) * 100));
   const totalPct = Math.min(100, Math.round((totalPoints / CHALLENGE.totalPointGoal) * 100));
-
-  const weekActivities = activities.filter((a) => a.week === displayWeek);
+  const isBrandNew = totalPoints === 0 && activities.length === 0 && checkins.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
@@ -100,26 +98,46 @@ export default function Dashboard({
       )}
 
       {/* Points summary */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Week {displayWeek} · {pillar.label}
-          </p>
-          <p className="mt-1 text-3xl font-bold text-emerald-800">{weekPts} pts</p>
-          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${weekPct}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.weeklyPointGoal} pts this week</p>
+      {loading ? (
+        <div className="grid animate-pulse grid-cols-1 gap-4 sm:grid-cols-2" aria-label="Loading points summary">
+          {[0, 1].map((card) => (
+            <div key={card} className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="h-3 w-2/3 rounded bg-slate-200" />
+              <div className="mt-3 h-9 w-1/3 rounded-lg bg-slate-200" />
+              <div className="mt-3 h-2.5 w-full rounded-full bg-slate-200" />
+              <div className="mt-2 h-3 w-3/4 rounded bg-slate-200" />
+            </div>
+          ))}
         </div>
+      ) : isBrandNew ? (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Challenge total</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-800">{totalPoints.toLocaleString()} pts</p>
-          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${totalPct}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.totalPointGoal} pts by Oct 30</p>
+          <p className="text-2xl" aria-hidden="true">🌱</p>
+          <h2 className="mt-1 font-bold text-emerald-800">Welcome! Let&apos;s get your challenge started.</h2>
+          <p className="mt-2 text-sm text-slate-600">🏃 Log your first activity</p>
+          <p className="mt-1 text-sm text-slate-600">💚 Complete your first check-in</p>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Week {displayWeek} · {pillar.label}
+            </p>
+            <p className="mt-1 text-3xl font-bold text-emerald-800">{weekPts} pts</p>
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${weekPct}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.weeklyPointGoal} pts this week</p>
+          </div>
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Challenge total</p>
+            <p className="mt-1 text-3xl font-bold text-emerald-800">{totalPoints.toLocaleString()} pts</p>
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${totalPct}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.totalPointGoal} pts by Oct 30</p>
+          </div>
+        </div>
+      )}
 
       {/* Check-in nudge banner — shows when weekly check-in hasn't been done yet */}
       {!checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
