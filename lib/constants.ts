@@ -3,6 +3,8 @@ export const CHALLENGE = {
   org: "Federated Co-operatives Limited",
   startDate: "2026-10-05",
   endDate: "2026-10-30",
+  /** Pre-registration opens on this date — participants can sign up and join teams. */
+  preregistrationStart: "2026-09-18",
   /** TESTING MODE: true = any date can be logged (mapped into the challenge).
    *  Production additionally requires ALLOW_PRODUCTION_TESTING_MODE=true. */
   testingMode: process.env.NEXT_PUBLIC_TESTING_MODE === "true",
@@ -151,4 +153,14 @@ export function todayIso(d = new Date()): string {
 export function currentChallengeWeek(today = new Date()): number | null {
   const iso = todayIso(today);
   return getChallengeWeek(iso);
+}
+
+/** The current phase of the challenge lifecycle. */
+export function challengePhase(): "preregistration" | "active" | "post" | "pre" {
+  const today = todayIso();
+  if (CHALLENGE.testingMode) return "pre";
+  if (today >= CHALLENGE.preregistrationStart && today < CHALLENGE.startDate) return "preregistration";
+  if (today >= CHALLENGE.startDate && today <= CHALLENGE.endDate) return "active";
+  if (today > CHALLENGE.endDate) return "post";
+  return "pre";
 }

@@ -7,6 +7,7 @@ import { computeActivityStreak, computeCheckinStreak } from "@/lib/streaks";
 import { useCelebration } from "@/lib/useCelebration";
 import {
   CHALLENGE,
+  challengePhase,
   currentChallengeWeek,
   pillarForWeek,
   todayIso,
@@ -60,6 +61,21 @@ export default function Dashboard({
   };
 
   if (!profile) return null;
+  if (challengePhase() === "preregistration") {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <div className="max-w-sm text-center">
+          <p className="text-lg font-semibold text-emerald-800">🔒 Challenge hasn&apos;t started yet</p>
+          <p className="mt-2 text-sm text-slate-500">
+            Pre-registration is open but activity logging starts <strong>October 5, 2026</strong>.
+          </p>
+          <Link href="/" className="mt-4 inline-block text-sm font-medium text-emerald-700 underline">
+            ← Back to home
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
 
   const weekActivityPts = activities

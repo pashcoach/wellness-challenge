@@ -2,10 +2,12 @@
 
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/data";
+import { challengePhase } from "@/lib/constants";
 import AuthForm from "@/components/AuthForm";
 import OnboardingForm from "@/components/OnboardingForm";
 import TeamSetup from "@/components/TeamSetup";
 import Dashboard from "@/components/Dashboard";
+import PreregistrationScreen from "@/components/PreregistrationScreen";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import WelcomeVideo from "@/components/WelcomeVideo";
 import { useRouter } from "next/navigation";
@@ -86,6 +88,10 @@ export default function Home() {
   }
 
   // Welcome video gate — after onboarding + team setup, before first dashboard view
+  if (challengePhase() === "preregistration" && profile) {
+    return <PreregistrationScreen profile={profile} />;
+  }
+
   if (welcomeChecked && showWelcome) {
     return <WelcomeVideo onDone={dismissWelcome} />;
   }
