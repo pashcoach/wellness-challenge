@@ -39,7 +39,7 @@ export default function Dashboard({
   const todayIsoStr = todayIso();
   const weekNow = currentChallengeWeek();
   const preChallenge = todayIsoStr < CHALLENGE.startDate;
-  const defaultWeek = weekNow ?? (preChallenge ? 1 : 4);
+  const defaultWeek = preChallenge ? 1 : (weekNow ?? 4);
   const [displayWeek, setDisplayWeek] = useState(defaultWeek);
   const pillar = pillarForWeek(displayWeek);
   const [wrapUpGateMessage, setWrapUpGateMessage] = useState<string | null>(null);
@@ -249,7 +249,7 @@ export default function Dashboard({
       {/* Log + check-in */}
       <div id="wellness-checkin-section" className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-bold">🏃 Log physical activity</h2>
+          <h2 className="mb-3 font-bold">🏃 Log wellness activity</h2>
           <ActivityForm profile={profile} onLogged={handleDataChanged} />
         </div>
         <div className="space-y-4">
