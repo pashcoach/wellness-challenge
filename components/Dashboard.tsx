@@ -20,6 +20,7 @@ import SoloTeamCard from "./SoloTeamCard";
 import SectionSeparator from "./SectionSeparator";
 import BrandMark from "./BrandMark";
 import WeeklyRecap from "./WeeklyRecap";
+import TeamFeed from "./TeamFeed";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
 
@@ -222,6 +223,11 @@ export default function Dashboard({
           </div>
         ) : (
           <SoloTeamCard profile={profile} onJoined={handleDataChanged} />
+        )}
+        {profile.team_id && (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <TeamFeed profile={profile} />
+          </div>
         )}
       </div>
 
