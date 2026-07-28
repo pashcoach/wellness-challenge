@@ -97,7 +97,7 @@ export default function ActivityForm({
         <button type="button" onClick={() => { setActivity("Cycling"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🚴 Cycle</button>
         <button type="button" onClick={() => { setActivity("Strength Training"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🏋️ Strength</button>
         <button type="button" onClick={() => { setActivity("Yoga"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🧘 Yoga</button>
-        <button type="button" onClick={() => { setActivity("Yardwork"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🍂 Yardwork</button>
+        <button type="button" onClick={() => { setActivity("Hiking"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🥾 Hiking</button>
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium">What did you do?</label>
