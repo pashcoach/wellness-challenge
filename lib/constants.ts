@@ -4,7 +4,7 @@ export const CHALLENGE = {
   startDate: "2026-10-05",
   endDate: "2026-10-30",
   /** TESTING MODE: true = any date can be logged (mapped into the challenge).
-   *  Enable only in non-production environments with NEXT_PUBLIC_TESTING_MODE=true. */
+   *  Production additionally requires ALLOW_PRODUCTION_TESTING_MODE=true. */
   testingMode: process.env.NEXT_PUBLIC_TESTING_MODE === "true",
   weeklyPointGoal: 140,
   totalPointGoal: 560,
