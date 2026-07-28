@@ -32,6 +32,12 @@ export default function Dashboard({
   const { activities, checkins, team, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
+  const todayIsoStr = todayIso();
+  const weekNow = currentChallengeWeek();
+  const preChallenge = todayIsoStr < CHALLENGE.startDate;
+  const defaultWeek = weekNow ?? (preChallenge ? 1 : 4);
+  const [displayWeek, setDisplayWeek] = useState(defaultWeek);
+  const pillar = pillarForWeek(displayWeek);
 
   const handleDataChanged = () => {
     refresh();
@@ -41,11 +47,6 @@ export default function Dashboard({
 
   if (!profile) return null;
 
-  const todayIsoStr = todayIso();
-  const weekNow = currentChallengeWeek();
-  const preChallenge = todayIsoStr < CHALLENGE.startDate;
-  const displayWeek = weekNow ?? (preChallenge ? 1 : 4);
-  const pillar = pillarForWeek(displayWeek);
 
   const weekActivityPts = activities
     .filter((a) => a.week === displayWeek)
@@ -121,6 +122,24 @@ export default function Dashboard({
           before the real October 5 launch. Tap <strong>💬 Send feedback</strong> anytime!
         </div>
       )}
+
+      {/* Week selector */}
+      <div className="mt-4 flex gap-2">
+        {[1, 2, 3, 4].map((w) => (
+          <button
+            key={w}
+            onClick={() => setDisplayWeek(w)}
+            className={`flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-colors ${
+              displayWeek === w
+                ? "bg-emerald-600 text-white shadow"
+                : "bg-white text-slate-600 hover:bg-emerald-50 border border-slate-200"
+            }`}
+          >
+            <span className="block text-[10px] uppercase tracking-wide opacity-70">Week</span>
+            {w}
+          </button>
+        ))}
+      </div>
 
       {/* Points summary */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
