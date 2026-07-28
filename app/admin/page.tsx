@@ -93,7 +93,57 @@ export default function AdminPage() {
 
     const crcYes = active.filter((p) => p.located_at_crc).length;
 
-    return { pointsByUser, active, totalMinutes, byBu, byDate, teamStandings, crcYes };
+    // ---- Weekly breakdown ----
+    const weekLabels = ["Week 1 · Physical", "Week 2 · Psychological", "Week 3 · Financial", "Week 4 · Social"];
+    const byWeek: {
+      week: number;
+      label: string;
+      active: number;
+      totalPoints: number;
+      totalMinutes: number;
+      checkinCount: number;
+      checkinRate: number;
+    }[] = [];
+    for (let w = 1; w <= 4; w++) {
+      const weekUsers = new Set<string>();
+      for (const a of data.activities) if (a.week === w) weekUsers.add(a.user_id);
+      for (const c of data.checkins) if (c.week === w) weekUsers.add(c.user_id);
+      const weekPts =
+        data.activities.filter((a) => a.week === w).reduce((s, a) => s + a.points, 0) +
+        data.checkins.filter((c) => c.week === w).reduce((s, c) => s + c.points, 0);
+      const weekMin = data.activities.filter((a) => a.week === w).reduce((s, a) => s + a.minutes, 0);
+      const checkinCount = data.checkins.filter((c) => c.week === w).length;
+      const checkinRate = weekUsers.size > 0 ? Math.round((checkinCount / weekUsers.size) * 100) : 0;
+      byWeek.push({
+        week: w,
+        label: weekLabels[w - 1],
+        active: weekUsers.size,
+        totalPoints: weekPts,
+        totalMinutes: weekMin,
+        checkinCount,
+        checkinRate,
+      });
+    }
+
+    // ---- Activity frequency ----
+    const activityFreq = new Map<string, number>();
+    for (const a of data.activities) {
+      activityFreq.set(a.activity, (activityFreq.get(a.activity) ?? 0) + 1);
+    }
+    const topActivities = [...activityFreq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    // ---- Demographics ----
+    const byAgeRange = new Map<string, number>();
+    for (const p of active) byAgeRange.set(p.age_range, (byAgeRange.get(p.age_range) ?? 0) + 1);
+
+    // ---- Team vs solo ----
+    const teamUsers = new Set(data.profiles.filter((p) => p.team_id).map((p) => p.id));
+    const activeOnTeam = active.filter((p) => teamUsers.has(p.id)).length;
+    const activeSolo = active.length - activeOnTeam;
+
+    return { pointsByUser, active, totalMinutes, byBu, byDate, teamStandings, crcYes, byWeek, topActivities, byAgeRange, activeOnTeam, activeSolo };
   }, [data]);
 
   if (authLoading || profileLoading) return <main className="p-8 text-slate-500">Loading…</main>;
@@ -275,6 +325,157 @@ export default function AdminPage() {
         {drawResult && (
           <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">{drawResult}</p>
         )}
+      </div>
+
+      {/* ─── Committee Report ─────────────────────────────────────── */}
+      <div className="mt-8">
+        <h2 className="text-lg font-bold text-emerald-800">📋 Committee Report</h2>
+        <p className="mt-1 text-xs text-slate-500">Weekly breakdown and key trends for the wellness committee.</p>
+      </div>
+
+      {/* Weekly comparison table */}
+      <div className="mt-3 rounded-2xl bg-white p-5 shadow-sm">
+        <h3 className="mb-3 font-bold">Weekly trends</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                <th className="pb-2 font-medium">Week</th>
+                <th className="pb-2 font-medium">Active</th>
+                <th className="pb-2 font-medium">Total pts</th>
+                <th className="pb-2 font-medium">Total min</th>
+                <th className="pb-2 font-medium">Check-ins</th>
+                <th className="pb-2 font-medium">Check-in rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.byWeek.map((w, i) => {
+                const prev = i > 0 ? stats.byWeek[i - 1] : null;
+                const trend = (cur: number, prevVal: number | undefined) => {
+                  if (prevVal === undefined || prevVal === 0) return null;
+                  const diff = cur - prevVal;
+                  if (Math.abs(diff) < 0.5) return <span className="text-slate-400">→</span>;
+                  return diff > 0
+                    ? <span className="text-emerald-600">↑{Math.round((diff / prevVal) * 100)}%</span>
+                    : <span className="text-red-500">↓{Math.round(Math.abs(diff / prevVal) * 100)}%</span>;
+                };
+                return (
+                  <tr key={w.week} className="border-b border-slate-100 last:border-0">
+                    <td className="py-2.5 font-medium text-slate-800">{w.label}</td>
+                    <td className="py-2.5">
+                      <span className="font-semibold">{w.active}</span>
+                      {prev && <span className="ml-1.5">{trend(w.active, prev.active)}</span>}
+                    </td>
+                    <td className="py-2.5">
+                      <span className="font-semibold">{w.totalPoints.toLocaleString()}</span>
+                      {prev && <span className="ml-1.5">{trend(w.totalPoints, prev.totalPoints)}</span>}
+                    </td>
+                    <td className="py-2.5">
+                      <span className="font-semibold">{w.totalMinutes.toLocaleString()}</span>
+                      {prev && <span className="ml-1.5">{trend(w.totalMinutes, prev.totalMinutes)}</span>}
+                    </td>
+                    <td className="py-2.5">{w.checkinCount}</td>
+                    <td className="py-2.5">
+                      <span className="font-semibold">{w.checkinRate}%</span>
+                      {prev && <span className="ml-1.5">{trend(w.checkinRate, prev.checkinRate)}</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Top activities */}
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-bold">Top activities</h3>
+          {stats.topActivities.length === 0 ? (
+            <p className="text-sm text-slate-500">No activities logged yet.</p>
+          ) : (
+            <ol className="space-y-1 text-sm">
+              {stats.topActivities.map(([activity, count], i) => (
+                <li key={activity} className="flex justify-between">
+                  <span>{i + 1}. {activity}</span>
+                  <span className="font-semibold text-slate-500">{count}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        {/* Demographics: age range */}
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-bold">Active by age range</h3>
+          {stats.byAgeRange.size === 0 ? (
+            <p className="text-sm text-slate-500">No data yet.</p>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {[...stats.byAgeRange.entries()].sort((a, b) => b[1] - a[1]).map(([range, n]) => (
+                <li key={range} className="flex justify-between">
+                  <span>{range}</span>
+                  <span className="font-semibold text-slate-500">{n}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Team vs solo */}
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-bold">Teams vs solo</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Registered on a team</span>
+              <span className="font-semibold">{data.profiles.filter((p) => p.team_id).length}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Active on a team</span>
+              <span className="font-semibold text-emerald-700">{stats.activeOnTeam}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Active solo</span>
+              <span className="font-semibold">{stats.activeSolo}</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-100 pt-2">
+              <span className="font-medium">Team engagement rate</span>
+              <span className="font-semibold text-emerald-700">
+                {stats.activeOnTeam > 0
+                  ? `${Math.round((stats.activeOnTeam / (stats.activeOnTeam + stats.activeSolo)) * 100)}%`
+                  : "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Pillar check-in completion */}
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-3 font-bold">Wellness pillar check-ins</h3>
+          {stats.byWeek.length === 0 ? (
+            <p className="text-sm text-slate-500">No check-ins yet.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {stats.byWeek.map((w) => (
+                <li key={w.week}>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-medium text-slate-700">{w.label}</span>
+                    <span className="text-slate-500">{w.checkinCount} check-ins</span>
+                  </div>
+                  <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{ width: `${w.checkinRate}%` }}
+                    />
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-slate-400">
+                    {w.active === 0 ? "No participants" : `${w.checkinCount} of ${w.active} participants (${w.checkinRate}%)`}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {/* Export */}
