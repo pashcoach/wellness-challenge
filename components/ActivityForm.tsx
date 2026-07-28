@@ -19,10 +19,13 @@ export default function ActivityForm({
   const [otherActivity, setOtherActivity] = useState("");
   const [showOtherPopup, setShowOtherPopup] = useState(false);
   const [minutes, setMinutes] = useState("");
+  const [minutesRef, setMinutesRef] = useState<HTMLInputElement | null>(null);
   const [date, setDate] = useState(today);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const minsInputRef = (el: HTMLInputElement | null) => { if (el && !minutesRef) setMinutesRef(el); };
 
   const mins = parseInt(minutes, 10);
   const pts = !isNaN(mins) && mins > 0 ? pointsForMinutes(mins) : 0;
@@ -87,6 +90,15 @@ export default function ActivityForm({
         />
       )}
       <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Quick-log preset buttons */}
+      <div className="flex flex-wrap gap-1.5">
+        <button type="button" onClick={() => { setActivity("Walking"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🚶 Walk</button>
+        <button type="button" onClick={() => { setActivity("Running"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🏃 Run</button>
+        <button type="button" onClick={() => { setActivity("Cycling"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🚴 Cycle</button>
+        <button type="button" onClick={() => { setActivity("Strength Training"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🏋️ Strength</button>
+        <button type="button" onClick={() => { setActivity("Yoga"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🧘 Yoga</button>
+        <button type="button" onClick={() => { setActivity("Yardwork"); setMinutes(""); minutesRef?.focus(); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">🍂 Yardwork</button>
+      </div>
       <div>
         <label className="mb-1 block text-sm font-medium">What did you do?</label>
         <select value={activity} onChange={(e) => handleActivityChange(e.target.value)} className={input} required>
@@ -114,6 +126,7 @@ export default function ActivityForm({
             required
             value={minutes}
             onChange={(e) => setMinutes(e.target.value)}
+            ref={minsInputRef}
             className={input}
             placeholder="e.g. 30"
           />

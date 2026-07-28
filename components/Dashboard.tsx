@@ -57,6 +57,24 @@ export default function Dashboard({
   const weekPct = Math.min(100, Math.round((weekPts / CHALLENGE.weeklyPointGoal) * 100));
   const totalPct = Math.min(100, Math.round((totalPoints / CHALLENGE.totalPointGoal) * 100));
 
+  // ---- Streak counter ----
+  // Collect all unique dates with entries, going back from today
+  const entryDates = new Set<string>();
+  for (const a of activities) entryDates.add(a.entry_date);
+  for (const c of checkins) entryDates.add(c.entry_date);
+  let streak = 0;
+  const d = new Date();
+  const dStr = () => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  while (entryDates.has(dStr()) && streak < 60) {
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+
+  // ---- Prize eligibility per week ----
+  const weeksEntered = new Set<number>();
+  for (const a of activities) if (a.week >= 1 && a.week <= 4) weeksEntered.add(a.week);
+  for (const c of checkins) if (c.week >= 1 && c.week <= 4) weeksEntered.add(c.week);
+
   const weekActivities = activities.filter((a) => a.week === displayWeek);
 
   return (
@@ -70,6 +88,11 @@ export default function Dashboard({
             <p className="text-xs text-slate-500">
               Hi {profile.full_name.split(" ")[0]} · {profile.business_unit}
               {profile.located_at_crc ? " · CRC" : ""}
+              {streak >= 2 && (
+                <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700">
+                  🔥 {streak}-day streak
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -118,6 +141,27 @@ export default function Dashboard({
             <div className="h-full rounded-full bg-emerald-700 transition-all" style={{ width: `${totalPct}%` }} />
           </div>
           <p className="mt-1 text-xs text-slate-500">Goal: {CHALLENGE.totalPointGoal} pts by Oct 30</p>
+        </div>
+      </div>
+
+      {/* Prize eligibility — 4 dots showing which weeks qualify for the draw */}
+      <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-5 py-3 shadow-sm">
+        <p className="text-xs font-medium text-slate-500">Weekly prize draw eligibility</p>
+        <div className="flex gap-3">
+          {[1, 2, 3, 4].map((w) => (
+            <div key={w} className="flex flex-col items-center gap-1">
+              <div
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                  weeksEntered.has(w)
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                {weeksEntered.has(w) ? "✓" : w}
+              </div>
+              <span className="text-[10px] text-slate-400">W{w}</span>
+            </div>
+          ))}
         </div>
       </div>
 
