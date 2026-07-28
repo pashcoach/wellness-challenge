@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useMyData } from "@/lib/data";
 import { computeActivityStreak, computeCheckinStreak } from "@/lib/streaks";
@@ -23,6 +23,7 @@ import WeeklyRecap from "./WeeklyRecap";
 import TeamFeed from "./TeamFeed";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
+import { WRAP_UP_GATE_MESSAGE_KEY } from "@/lib/wrap-up";
 
 export default function Dashboard({
   profile,
@@ -35,8 +36,16 @@ export default function Dashboard({
   const { activities, checkins, team, loading, totalPoints, refresh } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
+  const [wrapUpGateMessage, setWrapUpGateMessage] = useState<string | null>(null);
 
   useCelebration(totalPoints);
+
+  useEffect(() => {
+    const message = sessionStorage.getItem(WRAP_UP_GATE_MESSAGE_KEY);
+    if (!message) return;
+    sessionStorage.removeItem(WRAP_UP_GATE_MESSAGE_KEY);
+    queueMicrotask(() => setWrapUpGateMessage(message));
+  }, []);
 
   const handleDataChanged = () => {
     refresh();
@@ -97,6 +106,20 @@ export default function Dashboard({
           </button>
         </div>
       </header>
+
+      {wrapUpGateMessage && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+          <span>🏁 {wrapUpGateMessage}</span>
+          <button
+            type="button"
+            onClick={() => setWrapUpGateMessage(null)}
+            className="shrink-0 text-amber-700 hover:text-amber-950"
+            aria-label="Dismiss message"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {preChallenge && !CHALLENGE.testingMode && (
         <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
@@ -245,6 +268,17 @@ export default function Dashboard({
         <h2 className="mb-3 font-bold">🏆 Leaderboards</h2>
         <Leaderboard key={lbRefreshKey} />
       </div>
+
+      {todayIsoStr >= CHALLENGE.endDate && (
+        <div className="mt-6 text-center">
+          <Link
+            href="/wrap-up"
+            className="inline-block rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800"
+          >
+            🏁 View my challenge recap
+          </Link>
+        </div>
+      )}
 
       <FeedbackButton profile={profile} />
 
