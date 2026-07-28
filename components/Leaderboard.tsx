@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { currentChallengeWeek } from "@/lib/constants";
+import { useAuth } from "@/lib/auth";
+import { getPinnedEntry, rankEntries, type PinnedEntry } from "@/lib/leaderboard-ranking";
 
 interface PersonRow {
   id: string;
   display_name: string;
   team_name: string | null;
+  team_id: string | null;
   w1: number;
   w2: number;
   w3: number;
@@ -25,8 +28,64 @@ interface TeamRow {
 type Tab = "individual" | "weekly" | "teams";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
+const TOP_LIMIT = 10;
+
+function rankLabel(rank: number) {
+  return MEDALS[rank - 1] ?? `${rank}.`;
+}
+
+function BehindLabel({ pinned }: { pinned: PinnedEntry<unknown> }) {
+  if (pinned.pointsBehind === null || pinned.nextRank === null) return null;
+
+  return (
+    <p className="mt-0.5 text-xs font-medium text-sky-700">
+      {pinned.pointsBehind.toLocaleString()} {pinned.pointsBehind === 1 ? "pt" : "pts"} behind #{pinned.nextRank}
+    </p>
+  );
+}
+
+function PinnedPersonRow({ pinned, points }: { pinned: PinnedEntry<PersonRow>; points: number }) {
+  return (
+    <li className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <span className="w-7 text-center text-lg">{rankLabel(pinned.rank)}</span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-sky-700">📍 You</p>
+          <p className="text-sm font-semibold">{pinned.entry.display_name}</p>
+          {pinned.entry.team_name && <p className="text-xs text-slate-500">{pinned.entry.team_name}</p>}
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-sm font-bold text-emerald-800">{points.toLocaleString()} pts</p>
+        <BehindLabel pinned={pinned} />
+      </div>
+    </li>
+  );
+}
+
+function PinnedTeamRow({ pinned }: { pinned: PinnedEntry<TeamRow> }) {
+  return (
+    <li className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <span className="w-7 text-center text-lg">{rankLabel(pinned.rank)}</span>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-sky-700">📍 You</p>
+          <p className="text-sm font-semibold">{pinned.entry.name}</p>
+          <p className="text-xs text-slate-500">
+            {pinned.entry.members} member{pinned.entry.members === 1 ? "" : "s"}
+          </p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-sm font-bold text-emerald-800">{pinned.entry.avg.toLocaleString()} avg pts</p>
+        <BehindLabel pinned={pinned} />
+      </div>
+    </li>
+  );
+}
 
 export default function Leaderboard() {
+  const { session } = useAuth();
   const [people, setPeople] = useState<PersonRow[]>([]);
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +116,37 @@ export default function Leaderboard() {
         (a, b) => (b[`w${selectedWeek}` as keyof PersonRow] as number) - (a[`w${selectedWeek}` as keyof PersonRow] as number)
       ),
     [people, selectedWeek]
+  );
+
+  const individualRanked = useMemo(() => rankEntries(people, (person) => person.total), [people]);
+  const weeklyRanked = useMemo(
+    () => rankEntries(weeklySorted, (person) => person[`w${selectedWeek}` as keyof PersonRow] as number),
+    [selectedWeek, weeklySorted]
+  );
+  const teamRanked = useMemo(() => rankEntries(teams, (team) => team.avg), [teams]);
+
+  const visibleIndividuals = individualRanked.slice(0, TOP_LIMIT);
+  const visibleWeekly = weeklyRanked.slice(0, TOP_LIMIT);
+  const visibleTeams = teamRanked;
+  const userId = session?.user.id;
+  const currentPerson = people.find((person) => person.id === userId);
+  const pinnedIndividual = getPinnedEntry(
+    individualRanked,
+    visibleIndividuals,
+    (person) => person.id === userId,
+    (person) => person.total
+  );
+  const pinnedWeekly = getPinnedEntry(
+    weeklyRanked,
+    visibleWeekly,
+    (person) => person.id === userId,
+    (person) => person[`w${selectedWeek}` as keyof PersonRow] as number
+  );
+  const pinnedTeam = getPinnedEntry(
+    teamRanked,
+    visibleTeams,
+    (team) => team.id === currentPerson?.team_id,
+    (team) => team.avg
   );
 
   if (loading) {
@@ -118,15 +208,15 @@ export default function Leaderboard() {
       {tab === "individual" && (
         <ol className="space-y-2">
           {people.length === 0 && <p className="text-sm text-slate-500">No participants yet.</p>}
-          {people.map((p, i) => (
+          {visibleIndividuals.map(({ entry: p, rank }) => (
             <li
               key={p.id}
               className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                i === 0 && p.total > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
+                rank === 1 && p.total > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="w-7 text-center text-lg">{MEDALS[i] ?? `${i + 1}.`}</span>
+                <span className="w-7 text-center text-lg">{rankLabel(rank)}</span>
                 <div>
                   <p className="text-sm font-semibold">{p.display_name}</p>
                   {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
@@ -135,6 +225,7 @@ export default function Leaderboard() {
               <p className="text-sm font-bold text-emerald-800">{p.total.toLocaleString()} pts</p>
             </li>
           ))}
+          {pinnedIndividual && <PinnedPersonRow pinned={pinnedIndividual} points={pinnedIndividual.entry.total} />}
         </ol>
       )}
 
@@ -163,19 +254,19 @@ export default function Leaderboard() {
             weekly prize draw!
           </p>
           <ol className="space-y-2">
-            {weeklySorted.map((p, i) => {
+            {visibleWeekly.map(({ entry: p, rank }) => {
               const weekPts = p[`w${selectedWeek}` as keyof PersonRow] as number;
               return (
                 <li
                   key={p.id}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                    i === 0 && weekPts > 0
+                    rank === 1 && weekPts > 0
                       ? "border-amber-300 bg-amber-50"
                       : "border-slate-200 bg-white"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 text-center text-lg">{MEDALS[i] ?? `${i + 1}.`}</span>
+                    <span className="w-7 text-center text-lg">{rankLabel(rank)}</span>
                     <div>
                       <p className="text-sm font-semibold">{p.display_name}</p>
                       {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
@@ -187,6 +278,12 @@ export default function Leaderboard() {
                 </li>
               );
             })}
+            {pinnedWeekly && (
+              <PinnedPersonRow
+                pinned={pinnedWeekly}
+                points={pinnedWeekly.entry[`w${selectedWeek}` as keyof PersonRow] as number}
+              />
+            )}
           </ol>
         </div>
       )}
@@ -197,15 +294,15 @@ export default function Leaderboard() {
           {teams.length === 0 && (
             <p className="text-sm text-slate-500">No teams yet — create one and get your crew in!</p>
           )}
-          {teams.map((t, i) => (
+          {visibleTeams.map(({ entry: t, rank }) => (
             <li
               key={t.id}
               className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                i === 0 && t.avg > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
+                rank === 1 && t.avg > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="w-7 text-center text-lg">{MEDALS[i] ?? `${i + 1}.`}</span>
+                <span className="w-7 text-center text-lg">{rankLabel(rank)}</span>
                 <div>
                   <p className="text-sm font-semibold">{t.name}</p>
                   <p className="text-xs text-slate-500">
@@ -216,6 +313,7 @@ export default function Leaderboard() {
               <p className="text-sm font-bold text-emerald-800">{t.avg.toLocaleString()} avg pts</p>
             </li>
           ))}
+          {pinnedTeam && <PinnedTeamRow pinned={pinnedTeam} />}
         </ol>
       )}
     </div>
