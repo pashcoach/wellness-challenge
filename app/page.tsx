@@ -15,7 +15,6 @@ export default function Home() {
   const { session, loading } = useAuth();
   const { profile, loading: profileLoading, refresh } = useProfile();
   const [teamChecked, setTeamChecked] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeChecked, setWelcomeChecked] = useState(false);
   const router = useRouter();
 
@@ -24,10 +23,19 @@ export default function Home() {
   }, [profile?.team_id]);
 
   useEffect(() => {
-    // Welcome video shows once per device, right after onboarding/team setup
-    if (!localStorage.getItem("welcomeSeen")) setShowWelcome(true);
     setWelcomeChecked(true);
   }, []);
+
+  // Welcome video check: must read localStorage on EVERY render (not just mount)
+  // so that router.refresh() from team setup doesn't suppress it.
+  const showWelcome = welcomeChecked && typeof window !== "undefined" && !localStorage.getItem("welcomeSeen");
+
+  const dismissWelcome = () => {
+    localStorage.setItem("welcomeSeen", "1");
+    // Force re-render so showWelcome recalculates to false
+    setWelcomeChecked(false);
+    setTimeout(() => setWelcomeChecked(true), 0);
+  };
 
   if (loading || (session && profileLoading)) {
     return (
@@ -79,7 +87,7 @@ export default function Home() {
 
   // Welcome video gate — after onboarding + team setup, before first dashboard view
   if (welcomeChecked && showWelcome) {
-    return <WelcomeVideo onDone={() => setShowWelcome(false)} />;
+    return <WelcomeVideo onDone={dismissWelcome} />;
   }
 
   return (
