@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useMyData } from "@/lib/data";
+import { computeActivityStreak, computeCheckinStreak } from "@/lib/streaks";
+import { useCelebration } from "@/lib/useCelebration";
 import {
   CHALLENGE,
   currentChallengeWeek,
@@ -32,6 +34,8 @@ export default function Dashboard({
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
 
+  useCelebration(totalPoints);
+
   const handleDataChanged = () => {
     refresh();
     onProfileChange();
@@ -56,6 +60,8 @@ export default function Dashboard({
   const weekPct = Math.min(100, Math.round((weekPts / CHALLENGE.weeklyPointGoal) * 100));
   const totalPct = Math.min(100, Math.round((totalPoints / CHALLENGE.totalPointGoal) * 100));
   const isBrandNew = totalPoints === 0 && activities.length === 0 && checkins.length === 0;
+  const activityStreak = computeActivityStreak(activities);
+  const checkinStreak = computeCheckinStreak(checkins);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
@@ -69,6 +75,13 @@ export default function Dashboard({
               Hi {profile.full_name.split(" ")[0]} · {profile.business_unit}
               {profile.located_at_crc ? " · CRC" : ""}
             </p>
+            {(activityStreak.current > 0 || checkinStreak.current > 0) && (
+              <p className="text-xs font-medium text-emerald-700">
+                {activityStreak.current > 0 && `🔥 ${activityStreak.current} day streak`}
+                {activityStreak.current > 0 && checkinStreak.current > 0 && " · "}
+                {checkinStreak.current > 0 && `💚 ${checkinStreak.current} week check-in streak`}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
