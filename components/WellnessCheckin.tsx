@@ -73,7 +73,7 @@ export default function WellnessCheckin({
       )}
       <form onSubmit={handleCheck} className="rounded-xl border border-slate-200 bg-white p-4">
         <p className="font-semibold text-slate-800">
-          Week {week}: {pillar.prompt}
+          Week {week} Wellness Focus — {pillar.prompt}
         </p>
         <p className="mt-1 text-xs text-slate-500">
           Complete a {pillar.label} Action · worth {CHALLENGE.wellnessCheckInPoints} points

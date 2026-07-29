@@ -18,7 +18,7 @@ export const PILLARS = [
   {
     key: "physical",
     label: "Physical Wellness",
-    prompt: "Take care of your physical health this week",
+    prompt: "Take Care of your Physical Wellness this week",
     examples: [
       "Take a daily stretch break",
       "Increase your water intake",
@@ -30,7 +30,7 @@ export const PILLARS = [
   {
     key: "psychological",
     label: "Psychological Wellness",
-    prompt: "Take care of your psychological health this week",
+    prompt: "Take Care of your Psychological Wellness this week",
     examples: [
       "Take a meditation break",
       "Practice gratitude",
@@ -41,7 +41,7 @@ export const PILLARS = [
   {
     key: "financial",
     label: "Financial Wellness",
-    prompt: "Take care of your financial health this week",
+    prompt: "Take Care of your Financial Wellness this week",
     examples: [
       "Create or update a personal budget",
       "Read or watch something on financial wellbeing",
@@ -54,7 +54,7 @@ export const PILLARS = [
   {
     key: "social",
     label: "Social Wellness",
-    prompt: "Take care of your social health this week",
+    prompt: "Take Care of your Social Wellness this week",
     examples: [
       "Connect for coffee or tea with a colleague",
       "Volunteer or sign up to volunteer in your community",
