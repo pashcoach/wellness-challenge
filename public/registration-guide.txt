@@ -1,0 +1,42 @@
+FCL 2026 Wellness Challenge — Registration Guide
+==================================================
+
+Open the App
+Open your phone's web browser and go to:
+https://wellness-challenge.vercel.app
+
+Add to Home Screen (Recommended)
+iPhone: Tap the Share button (square with arrow) → Scroll down → Tap "Add to Home Screen"
+Android: Tap the menu (three dots) → Tap "Add to Home Screen"
+This creates an app icon on your phone for easy one-tap access.
+
+Create Your Account
+1. Enter your email address
+2. Create a password (at least 6 characters)
+3. Tap "Sign up"
+4. You're signed in — no confirmation email needed
+
+Complete Your Profile
+1. Enter your first and last name
+2. Optionally choose a username (shown on leaderboards instead of your name)
+3. Select your business unit from the list
+4. Answer whether you're located at CRC
+5. Select your age range
+6. Tap "Continue"
+
+Join or Create a Team (Optional)
+- Create a new team: Enter a team name and tap "Create team"
+- Join an existing team: Tap "Join an existing team" and pick one from the list
+- Skip for now: You can join a team later
+
+You're Registered!
+You'll see a confirmation screen with a countdown to October 5.
+Share the app link with coworkers and invite them to your team.
+
+Start Logging — October 5
+Come back on October 5 to start earning points:
+✓ Log wellness activities — every minute counts (1 point per minute)
+✓ Complete one wellness check-in per week (+20 points)
+✓ Earn points, win prizes, and compete with your team
+
+Need help? Use the feedback button in the app or contact Patrick.

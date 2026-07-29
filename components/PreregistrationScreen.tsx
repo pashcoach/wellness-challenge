@@ -75,7 +75,7 @@ export default function PreregistrationScreen({ profile }: Props) {
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
             <li className="flex items-start gap-2">
               <span className="mt-0.5 shrink-0">🏃</span>
-              <span>Log physical activities every day — 10 minutes = 10 points</span>
+              <span>Log wellness activities — every minute counts (1 point per minute)</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-0.5 shrink-0">💚</span>
