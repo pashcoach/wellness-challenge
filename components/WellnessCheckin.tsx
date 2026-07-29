@@ -76,7 +76,7 @@ export default function WellnessCheckin({
           Week {week}: {pillar.prompt}
         </p>
         <p className="mt-1 text-xs text-slate-500">
-          {pillar.label} · worth {CHALLENGE.wellnessCheckInPoints} points
+          Complete a {pillar.label} Action · worth {CHALLENGE.wellnessCheckInPoints} points
         </p>
 
         {/* Examples — always visible */}
@@ -89,7 +89,7 @@ export default function WellnessCheckin({
           ))}
         </ul>
         <p className="mt-1.5 text-xs text-slate-400">
-          These are examples — anything that supports your {pillar.label.toLowerCase()} counts!
+          These are examples — any action that supports your {pillar.label.toLowerCase()} counts!
         </p>
 
         {/* Simple confirmation checkbox */}
@@ -101,7 +101,7 @@ export default function WellnessCheckin({
             className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600"
           />
           <span className="text-sm font-medium text-emerald-800">
-            I supported my {pillar.label.toLowerCase()} health this week (+{CHALLENGE.wellnessCheckInPoints} pts)
+            I supported my {pillar.label.toLowerCase()} this week (+{CHALLENGE.wellnessCheckInPoints} pts)
           </span>
         </label>
 
