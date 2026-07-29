@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { ACTIVITIES, CHALLENGE, getChallengeWeek, pointsForMinutes, todayIso } from "@/lib/constants";
 import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 
-const QUICK_MINUTES = [15, 15, 15, 15, 15, 15] as const;
-
-const QUICK_PRESETS = [
-  { emoji: "🚶", label: "Walk", activity: "Walking" },
-  { emoji: "🏃", label: "Run", activity: "Running" },
-  { emoji: "🚴", label: "Cycle", activity: "Cycling" },
-  { emoji: "🏋️", label: "Strength", activity: "Strength Training" },
-  { emoji: "🧘", label: "Yoga", activity: "Yoga" },
-  { emoji: "🥾", label: "Hike", activity: "Hiking" },
+const QUICK_ACTIVITIES = [
+  { emoji: "🚶", label: "Walking" },
+  { emoji: "🏃", label: "Running" },
+  { emoji: "🚴", label: "Cycling" },
+  { emoji: "🧘", label: "Yoga" },
+  { emoji: "🏋️", label: "Strength Training" },
+  { emoji: "🥾", label: "Hiking" },
 ];
+
+const QUICK_MINUTES = [10, 15, 20, 30, 45, 60];
 
 export default function ActivityForm({
   profile,
@@ -35,8 +35,11 @@ export default function ActivityForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [sessionLog, setSessionLog] = useState<number>(0);
-  const lastQuickBusy = useRef<string | null>(null);
+  const [sessionLog, setSessionLog] = useState(0);
+
+  /* Quick batch state */
+  const [quickActivity, setQuickActivity] = useState("");
+  const [quickMinutes, setQuickMinutes] = useState<number | null>(null);
 
   const minsInputRef = (el: HTMLInputElement | null) => { if (el && !minutesRef) setMinutesRef(el); };
 
@@ -45,35 +48,35 @@ export default function ActivityForm({
   const week = getChallengeWeek(date);
   const isOther = activity === "Other";
 
-  const logEntry = useCallback(async (activityLabel: string, logMinutes: number, logDate: string) => {
-    if (!supabase || !week) return { error: "date" };
-    const logPoints = pointsForMinutes(logMinutes);
-    const { error: dbError } = await supabase.from("activity_entries").insert({
-      user_id: profile.id,
-      activity: activityLabel,
-      minutes: logMinutes,
-      points: logPoints,
-      entry_date: logDate,
-      week,
-    });
-    if (dbError) return { error: friendlyError(dbError) };
-    return { error: null, points: logPoints };
-  }, [profile.id, week]);
+  const quickPts = quickMinutes && quickActivity ? pointsForMinutes(quickMinutes) : 0;
 
-  async function quickLog(presetLabel: string, presetActivity: string, logMinutes: number) {
-    if (!supabase || busy || !week) return;
-    lastQuickBusy.current = presetActivity;
+  function handleActivityChange(value: string) {
+    setActivity(value);
+    if (value === "Other") {
+      setOtherActivity("");
+      setShowOtherPopup(true);
+    }
+  }
+
+  async function logQuick() {
+    if (!supabase || !week || !quickActivity || !quickMinutes) return;
     setBusy(true);
     setError(null);
-    const result = await logEntry(presetActivity, logMinutes, date);
+    const { error: dbError } = await supabase.from("activity_entries").insert({
+      user_id: profile.id,
+      activity: quickActivity,
+      minutes: quickMinutes,
+      points: pointsForMinutes(quickMinutes),
+      entry_date: date,
+      week,
+    });
     setBusy(false);
-    lastQuickBusy.current = null;
-    if (result.error === "date") {
-      setError("That date is outside the challenge (Oct 5 – Oct 30, 2026).");
-    } else if (result.error) {
-      setError(result.error);
+    if (dbError) {
+      setError(friendlyError(dbError));
     } else {
       setSessionLog((c) => c + 1);
+      setQuickActivity("");
+      setQuickMinutes(null);
       onLogged();
     }
   }
@@ -115,14 +118,6 @@ export default function ActivityForm({
     }
   }
 
-  function handleActivityChange(value: string) {
-    setActivity(value);
-    if (value === "Other") {
-      setOtherActivity("");
-      setShowOtherPopup(true);
-    }
-  }
-
   const input =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
 
@@ -144,122 +139,142 @@ export default function ActivityForm({
         </div>
       )}
 
-      {/* Quick batch — one-tap with duration chips */}
-      <div className="mb-4">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Quick batch</p>
-        <div className="grid grid-cols-3 gap-2">
-          {QUICK_PRESETS.map((p) => (
-            <div key={p.activity} className="flex flex-col gap-1">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => quickLog(p.label, p.activity, 15)}
-                className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-center text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
-              >
-                <span className="block text-base">{p.emoji}</span>
-                <span>{p.label}</span>
-                <span className="block text-[10px] text-emerald-500">+10 pts</span>
-              </button>
-              <div className="flex gap-0.5">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => quickLog(p.label, p.activity, 10)}
-                  className="flex-1 rounded bg-emerald-50 py-1 text-[10px] text-emerald-600 hover:bg-emerald-100 disabled:opacity-40"
-                >
-                  10m
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => quickLog(p.label, p.activity, 20)}
-                  className="flex-1 rounded bg-emerald-50 py-1 text-[10px] text-emerald-600 hover:bg-emerald-100 disabled:opacity-40"
-                >
-                  20m
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => quickLog(p.label, p.activity, 30)}
-                  className="flex-1 rounded bg-emerald-50 py-1 text-[10px] text-emerald-600 hover:bg-emerald-100 disabled:opacity-40"
-                >
-                  30m
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Detailed entry form */}
-      <details className="group">
-        <summary className="cursor-pointer text-xs font-medium text-emerald-700 hover:text-emerald-800">
-          ⚙️ Custom entry (choose your own activity &amp; duration)
-        </summary>
-        <form onSubmit={handleSubmit} className="mt-3 space-y-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium">What did you do?</label>
-            <select value={activity} onChange={(e) => handleActivityChange(e.target.value)} className={input} required>
-              <option value="">Choose an activity…</option>
-              {ACTIVITIES.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-            {isOther && otherActivity && (
-              <button
-                type="button"
-                onClick={() => setShowOtherPopup(true)}
-                className="mt-1 text-xs font-medium text-emerald-700 underline"
-              >
-                ✏️ {otherActivity} (edit)
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Minutes</label>
-              <input
-                type="number"
-                min={1}
-                required
-                value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
-                ref={minsInputRef}
-                className={input}
-                placeholder="e.g. 30"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Date</label>
-              <input
-                type="date"
-                required
-                value={date}
-                {...(CHALLENGE.testingMode
-                  ? {}
-                  : { min: CHALLENGE.startDate, max: CHALLENGE.endDate })}
-                onChange={(e) => setDate(e.target.value)}
-                className={input}
-              />
-            </div>
-          </div>
-          {pts > 0 && (
-            <p
-              key={pts}
-              className="points-flash rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-bold text-emerald-800"
+      {/* ═══ CUSTOM ENTRY — visible by default ═══ */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <label className="mb-1 block text-sm font-medium">What did you do?</label>
+          <select value={activity} onChange={(e) => handleActivityChange(e.target.value)} className={input} required>
+            <option value="">Choose an activity…</option>
+            {ACTIVITIES.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+          {isOther && otherActivity && (
+            <button
+              type="button"
+              onClick={() => setShowOtherPopup(true)}
+              className="mt-1 text-xs font-medium text-emerald-700 underline"
             >
-              ✨ {pts} points
-            </p>
+              ✏️ {otherActivity} (edit)
+            </button>
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Minutes</label>
+            <input
+              type="number"
+              min={1}
+              required
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+              ref={minsInputRef}
+              className={input}
+              placeholder="e.g. 30"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Date</label>
+            <input
+              type="date"
+              required
+              value={date}
+              {...(CHALLENGE.testingMode
+                ? {}
+                : { min: CHALLENGE.startDate, max: CHALLENGE.endDate })}
+              onChange={(e) => setDate(e.target.value)}
+              className={input}
+            />
+          </div>
+        </div>
+        {pts > 0 && (
+          <p
+            key={pts}
+            className="points-flash rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm font-bold text-emerald-800"
+          >
+            ✨ {pts} points
+          </p>
+        )}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {busy ? "Saving…" : "Log activity"}
+        </button>
+      </form>
+
+      {/* ═══ QUICK BATCH — collapsed, below custom entry ═══ */}
+      <details className="group mt-4">
+        <summary className="cursor-pointer text-sm font-medium text-emerald-700 hover:text-emerald-800">
+          ⚡ Quick batch — log several activities fast
+        </summary>
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-slate-500">
+            Pick an activity, tap a duration, then tap Log. Repeat for each entry.
+          </p>
+
+          {/* Activity picker */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-500">1. Pick an activity</label>
+            <div className="grid grid-cols-3 gap-2">
+              {QUICK_ACTIVITIES.map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => { setQuickActivity(a.label); setQuickMinutes(null); }}
+                  className={`rounded-lg border px-2 py-2.5 text-center text-xs font-medium transition-colors ${
+                    quickActivity === a.label
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="block text-base">{a.emoji}</span>
+                  <span>{a.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Minutes picker */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-slate-500">2. How long?</label>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_MINUTES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setQuickMinutes(m)}
+                  disabled={!quickActivity}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    quickMinutes === m
+                      ? "bg-emerald-600 text-white"
+                      : quickActivity
+                        ? "border border-slate-300 bg-white text-slate-700 hover:border-emerald-400 hover:bg-emerald-50"
+                        : "border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  {m} min <span className="font-normal">(+{m} pts)</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Log button */}
           <button
-            type="submit"
-            disabled={busy}
+            type="button"
+            disabled={busy || !quickActivity || !quickMinutes}
+            onClick={logQuick}
             className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {busy ? "Saving…" : "Log activity"}
+            {busy
+              ? "Saving…"
+              : quickActivity && quickMinutes
+                ? `Log ${quickActivity} · ${quickMinutes} min (+${quickPts} pts)`
+                : "Select an activity and duration above"}
           </button>
-        </form>
+        </div>
       </details>
 
       {/* Other activity popup */}

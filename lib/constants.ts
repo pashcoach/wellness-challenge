@@ -119,7 +119,7 @@ export const AGE_RANGES = ["18–29", "30–39", "40–49", "50–59", "60–69"
 export const WELLNESS_ACTIVITIES = [] as const;
 
 export function pointsForMinutes(minutes: number): number {
-  return Math.floor(minutes / 10) * CHALLENGE.pointsPerTenMinutes;
+  return minutes;
 }
 
 export function getChallengeWeek(dateStr: string): number | null {
