@@ -57,10 +57,14 @@ export default function BadgeDisplay({ badges, max = 5 }: Props) {
 
       {/* Popover */}
       {selected && (
-        <div
-          ref={popoverRef}
-          className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
-        >
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40" onClick={() => setSelected(null)} />
+          {/* Popover */}
+          <div
+            ref={popoverRef}
+            className="fixed left-1/2 top-1/2 z-50 w-64 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-4 shadow-xl"
+          >
           <div className="flex items-start gap-3">
             <span className="text-2xl">{selected.icon}</span>
             <div>
@@ -71,8 +75,9 @@ export default function BadgeDisplay({ badges, max = 5 }: Props) {
               </p>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+          </>
+        )}
     </div>
   );
 }
