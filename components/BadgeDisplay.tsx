@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { UserBadge } from "@/lib/badge-utils";
 import { ALL_BADGES, badgeCategoryLabel, badgeCategoryOrder } from "@/lib/badge-utils";
@@ -10,30 +11,48 @@ interface Props {
 }
 
 export default function BadgeDisplay({ badges, max = 5 }: Props) {
+  const [selected, setSelected] = useState<UserBadge | null>(null);
+
   if (badges.length === 0) return null;
 
   const shown = badges.slice(0, max);
   const remaining = badges.length - max;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {shown.map((b) => (
-        <span
-          key={b.key}
-          title={b.description}
-          className="inline-flex cursor-default items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
-        >
-          <span className="text-sm leading-none">{b.icon}</span>
-          <span>{b.name}</span>
-        </span>
-      ))}
-      {remaining > 0 && (
-        <Link
-          href="/badges"
-          className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:bg-slate-200"
-        >
-          +{remaining} more
-        </Link>
+    <div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {shown.map((b) => (
+          <button
+            key={b.key}
+            type="button"
+            onClick={() => setSelected(selected?.key === b.key ? null : b)}
+            className={`inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
+              selected?.key === b.key
+                ? "bg-emerald-200 text-emerald-800"
+                : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            }`}
+          >
+            <span className="text-sm leading-none">{b.icon}</span>
+            <span>{b.name}</span>
+          </button>
+        ))}
+        {remaining > 0 && (
+          <Link
+            href="/badges"
+            className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:bg-slate-200"
+          >
+            +{remaining} more
+          </Link>
+        )}
+      </div>
+
+      {/* Description — appears below the row when tapped */}
+      {selected && (
+        <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <span className="mr-1 text-base">{selected.icon}</span>
+          <span className="font-semibold">{selected.name}</span>
+          <span className="ml-1 text-emerald-600">— {selected.description}</span>
+        </div>
       )}
     </div>
   );
