@@ -59,7 +59,7 @@ export default function BadgeDisplay({ badges, max = 5 }: Props) {
       {selected && (
         <div
           ref={popoverRef}
-          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
+          className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
         >
           <div className="flex items-start gap-3">
             <span className="text-2xl">{selected.icon}</span>
