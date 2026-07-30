@@ -25,6 +25,9 @@ import TeamFeed from "./TeamFeed";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
 import { WRAP_UP_GATE_MESSAGE_KEY } from "@/lib/wrap-up";
+import BadgeDisplay from "./BadgeDisplay";
+import { fetchUserBadges } from "@/lib/badge-utils";
+import type { UserBadge } from "@/lib/badge-utils";
 
 export default function Dashboard({
   profile,
@@ -44,6 +47,7 @@ export default function Dashboard({
   const [displayWeek, setDisplayWeek] = useState(defaultWeek);
   const pillar = pillarForWeek(displayWeek);
   const [wrapUpGateMessage, setWrapUpGateMessage] = useState<string | null>(null);
+  const [badges, setBadges] = useState<UserBadge[]>([]);
 
   useCelebration(totalPoints);
 
@@ -53,6 +57,11 @@ export default function Dashboard({
     sessionStorage.removeItem(WRAP_UP_GATE_MESSAGE_KEY);
     queueMicrotask(() => setWrapUpGateMessage(message));
   }, []);
+
+  // Fetch badges
+  useEffect(() => {
+    fetchUserBadges(profile.id).then(setBadges);
+  }, [profile.id, totalPoints]);
 
   const handleDataChanged = () => {
     refresh();
@@ -127,6 +136,9 @@ export default function Dashboard({
               Admin
             </Link>
           )}
+          <Link href="/badges" className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">
+            🏅
+          </Link>
           <button onClick={signOut} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">
             Sign out
           </button>
@@ -241,6 +253,18 @@ export default function Dashboard({
           ))}
         </div>
       </div>
+
+      {/* Badges */}
+      {badges.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-white px-5 py-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <BadgeDisplay badges={badges} />
+            <Link href="/badges" className="text-[10px] font-medium text-emerald-700 underline">
+              View all
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Check-in nudge banner — shows when weekly check-in hasn't been done yet */}
       {!checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
