@@ -49,20 +49,20 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
           /* max-w-lg on portrait, full on landscape */
           className={
             "mx-auto w-full rounded-2xl bg-white shadow-2xl " +
-            "max-w-md landscape:max-w-[95vw] landscape:lg:max-w-5xl p-4 sm:p-5"
+            "max-w-md landscape:max-w-[90vw] landscape:lg:max-w-4xl p-4 sm:p-5"
           }
         >
           <div className="gap-4 landscape:flex landscape:items-start">
             {/* Header — compact row in portrait, column sidebar in landscape */}
             <div
               className={
-                "mb-3 landscape:mb-0 landscape:w-56 landscape:shrink-0 landscape:pt-1 " +
+                "mb-3 landscape:mb-0 landscape:w-40 landscape:shrink-0 landscape:pt-1 " +
                 "flex items-center gap-3 landscape:flex-col landscape:items-start"
               }
             >
               <BrandMark size={36} />
               <div>
-                <h2 className="font-bold text-emerald-800 landscape:text-lg">
+                <h2 className="font-bold text-emerald-800 landscape:text-base">
                   Welcome! 👋
                 </h2>
                 <p className="text-xs text-slate-500 landscape:text-xs landscape:mt-1">
