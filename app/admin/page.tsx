@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/data";
+import { friendlyError } from "@/lib/errors";
 import Link from "next/link";
 
 interface Row {
@@ -15,6 +16,14 @@ interface Row {
   activities: { user_id: string; activity: string; minutes: number; points: number; entry_date: string; week: number }[];
   checkins: { user_id: string; week: number; pillar: string; points: number; comment: string | null }[];
   surveys: { user_id: string }[];
+}
+
+interface DrawRecord {
+  draw_key: string;
+  drawn_at: string;
+  winner_name: string | null;
+  winner_business_unit: string | null;
+  team_name: string | null;
 }
 
 function toCsv(rows: (string | number | boolean | null)[][]): string {
@@ -29,17 +38,22 @@ export default function AdminPage() {
   const [data, setData] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
   const [drawResult, setDrawResult] = useState<string | null>(null);
+  const [drawError, setDrawError] = useState<string | null>(null);
+  const [drawHistory, setDrawHistory] = useState<DrawRecord[]>([]);
+  const [confirmDraw, setConfirmDraw] = useState<{ key: string; label: string } | null>(null);
+  const [drawBusy, setDrawBusy] = useState(false);
 
   const isAdmin = profile?.is_admin === true;
 
   const load = useCallback(async () => {
     if (!supabase || !isAdmin) return;
-    const [profiles, teams, activities, checkins, surveys] = await Promise.all([
+    const [profiles, teams, activities, checkins, surveys, draws] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("teams").select("id, name"),
       supabase.from("activity_entries").select("user_id, activity, minutes, points, entry_date, week"),
       supabase.from("wellness_checkins").select("user_id, week, pillar, points, comment"),
       supabase.from("survey_responses").select("user_id"),
+      supabase.from("draw_results").select("*").order("drawn_at"),
     ]);
     setData({
       profiles: (profiles.data ?? []) as Row["profiles"],
@@ -48,6 +62,7 @@ export default function AdminPage() {
       checkins: (checkins.data ?? []) as Row["checkins"],
       surveys: (surveys.data ?? []) as Row["surveys"],
     });
+    setDrawHistory((draws.data ?? []) as DrawRecord[]);
     setLoading(false);
   }, [isAdmin]);
 
@@ -160,18 +175,6 @@ export default function AdminPage() {
   }
   if (loading || !data || !stats) return <main className="p-8 text-slate-500">Loading stats…</main>;
 
-  const topTeam = stats.teamStandings[0];
-
-  function drawRandom(from: string[], label: string) {
-    if (from.length === 0) {
-      setDrawResult(`No eligible ${label} yet.`);
-      return;
-    }
-    const winnerId = from[Math.floor(Math.random() * from.length)];
-    const winner = data!.profiles.find((p) => p.id === winnerId);
-    setDrawResult(`🎲 ${label}: ${winner?.full_name ?? winnerId}`);
-  }
-
   function downloadCsv() {
     if (!data || !stats) return;
     const rows: (string | number | boolean | null)[][] = [
@@ -204,11 +207,38 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   }
 
-  const weeklyDrawPool = (week: number) =>
-    [...new Set([
-      ...data.activities.filter((a) => a.week === week).map((a) => a.user_id),
-      ...data.checkins.filter((c) => c.week === week).map((c) => c.user_id),
-    ])];
+  /** Runs a rule-enforcing draw via SQL function. Draws are one-shot & permanent. */
+  async function runDraw(key: string, label: string) {
+    if (!supabase) return;
+    setDrawBusy(true);
+    setDrawError(null);
+    setDrawResult(null);
+    let result;
+    if (key === "grand") {
+      result = await supabase.rpc("run_grand_prize_draw");
+    } else if (key === "team_random") {
+      result = await supabase.rpc("run_random_team_draw");
+    } else {
+      const week = parseInt(key.replace("week", ""), 10);
+      result = await supabase.rpc("run_weekly_draw", { p_week: week });
+    }
+    setDrawBusy(false);
+    if (result.error) {
+      setDrawError(friendlyError(result.error));
+      return;
+    }
+    const rows = (result.data ?? []) as { winner_name?: string; winner_business_unit?: string; team_name?: string }[];
+    if (rows.length === 0) {
+      setDrawError("Draw ran but no winners were returned.");
+      return;
+    }
+    const detail = rows
+      .map((r) => r.team_name ? `🏆 ${r.team_name}` : `🎉 ${r.winner_name} (${r.winner_business_unit ?? "—"})`)
+      .join("\n");
+    setDrawResult(`${label} — Congratulations!\n${detail}`);
+    setConfirmDraw(null);
+    load();
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
@@ -288,44 +318,113 @@ export default function AdminPage() {
       {/* Prize draws */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold">🎁 Prize draws</h2>
-        <p className="mb-3 text-xs text-slate-500">Results are random — run them when you&apos;re ready and note the winner before clicking again.</p>
+        <p className="mb-3 text-xs text-slate-500">
+          Draws enforce the rules: weekly = 2 winners with 140+ pts that week, no repeat winners; grand = 140+ pts every week.
+          <strong> Each draw runs once and is permanent.</strong> Review winners, then add them to the email sequence doc.
+        </p>
+
+        {/* Draw buttons */}
         <div className="flex flex-wrap gap-2">
-          {[1, 2, 3, 4].map((w) => (
-            <button
-              key={w}
-              onClick={() => drawRandom(weeklyDrawPool(w), `Week ${w} draw winner`)}
-              className="rounded-lg border border-emerald-600 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
-            >
-              Week {w} draw
-            </button>
-          ))}
+          {[1, 2, 3, 4].map((w) => {
+            const done = drawHistory.some((d) => d.draw_key === `week${w}`);
+            return (
+              <button
+                key={w}
+                disabled={done || drawBusy}
+                onClick={() => setConfirmDraw({ key: `week${w}`, label: `Week ${w} draw (2 winners, 140+ pts)` })}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                  done
+                    ? "border-slate-200 bg-slate-100 text-slate-400"
+                    : "border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                } disabled:opacity-60`}
+              >
+                {done ? "✓ Week " + w + " drawn" : "Run Week " + w + " draw"}
+              </button>
+            );
+          })}
           <button
-            onClick={() => {
-              const teamIds = stats.teamStandings.map((t) => t.id).filter((id) => id !== topTeam?.id);
-              if (teamIds.length === 0) return setDrawResult("No other teams to draw from yet.");
-              const id = teamIds[Math.floor(Math.random() * teamIds.length)];
-              setDrawResult(`🎲 Random team lunch: ${stats.teamStandings.find((t) => t.id === id)?.name}`);
-            }}
-            className="rounded-lg border border-emerald-600 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            disabled={drawHistory.some((d) => d.draw_key === "grand") || drawBusy}
+            onClick={() => setConfirmDraw({ key: "grand", label: "Grand prize draw (2 winners, 140 pts every week)" })}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+              drawHistory.some((d) => d.draw_key === "grand")
+                ? "border-slate-200 bg-slate-100 text-slate-400"
+                : "border-amber-500 bg-amber-50 text-amber-800 hover:bg-amber-100"
+            } disabled:opacity-60`}
           >
-            Random team lunch
+            {drawHistory.some((d) => d.draw_key === "grand") ? "✓ Grand drawn" : "Run grand prize draw"}
           </button>
           <button
-            onClick={() => drawRandom(data.surveys.map((s) => s.user_id), "Survey draw winner")}
-            className="rounded-lg border border-emerald-600 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+            disabled={drawHistory.some((d) => d.draw_key === "team_random") || drawBusy}
+            onClick={() => setConfirmDraw({ key: "team_random", label: "Random team lunch draw (all participating teams)" })}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+              drawHistory.some((d) => d.draw_key === "team_random")
+                ? "border-slate-200 bg-slate-100 text-slate-400"
+                : "border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+            } disabled:opacity-60`}
           >
-            Survey draw
+            {drawHistory.some((d) => d.draw_key === "team_random") ? "✓ Random team drawn" : "Run random team draw"}
           </button>
         </div>
-        {topTeam && (
+
+        {/* Top team — highest total points */}
+        {stats.teamStandings.length > 0 && (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            🏆 Top team (lunch): <strong>{topTeam.name}</strong> — {topTeam.avg.toLocaleString()} avg pts
+            🏆 Top team (lunch): <strong>{stats.teamStandings[0].name}</strong> — {stats.teamStandings[0].avg.toLocaleString()} avg pts
           </p>
         )}
+
+        {drawError && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{drawError}</p>}
         {drawResult && (
-          <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">{drawResult}</p>
+          <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">{drawResult}</pre>
+        )}
+
+        {/* Draw history */}
+        {drawHistory.length > 0 && (
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Completed draws</h3>
+            <ul className="space-y-1 text-sm">
+              {drawHistory.map((d) => (
+                <li key={d.draw_key} className="flex justify-between text-slate-600">
+                  <span className="font-medium capitalize">
+                    {d.draw_key.replace("_", " ")}
+                  </span>
+                  <span>{d.team_name ?? `${d.winner_name} · ${d.winner_business_unit ?? ""}`}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
+
+      {/* Draw confirmation modal */}
+      {confirmDraw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="font-bold text-slate-800">Run this draw?</h3>
+            <p className="mt-1 text-sm text-slate-600">{confirmDraw.label}</p>
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              ⚠️ This is permanent — the winners are recorded and cannot be re-drawn. Only run it once you&apos;re ready.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDraw(null)}
+                className="rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={drawBusy}
+                onClick={() => runDraw(confirmDraw.key, confirmDraw.label)}
+                className="rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {drawBusy ? "Drawing…" : "Run draw"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Committee Report ─────────────────────────────────────── */}
       <div className="mt-8">
