@@ -18,6 +18,16 @@ const QUICK_ACTIVITIES = [
 
 const QUICK_MINUTES = [10, 15, 20, 30, 45, 60];
 
+/** Representative dates whose day-of-month maps to each challenge week in
+ *  testing mode (getChallengeWeek maps day 1-7→wk1, 8-14→wk2, 15-21→wk3, 22+→wk4). */
+const TEST_WEEK_REPRESENTATIVE_DAY = [3, 10, 17, 24];
+
+function representativeDateForWeek(week: number, baseIso: string): string {
+  const [y, m] = baseIso.split("-");
+  const day = String(TEST_WEEK_REPRESENTATIVE_DAY[week - 1] ?? 24).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default function ActivityForm({
   profile,
   onLogged,
@@ -31,6 +41,9 @@ export default function ActivityForm({
   const [showOtherPopup, setShowOtherPopup] = useState(false);
   const [minutes, setMinutes] = useState("");
   const [minutesRef, setMinutesRef] = useState<HTMLInputElement | null>(null);
+  // In testing mode the user picks a WEEK directly; the stored date is a
+  // representative date that maps back to that week. Otherwise a free date.
+  const [week, setWeek] = useState<number>(() => getChallengeWeek(today) ?? 1);
   const [date, setDate] = useState(today);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +58,8 @@ export default function ActivityForm({
 
   const mins = parseInt(minutes, 10);
   const pts = !isNaN(mins) && mins > 0 ? pointsForMinutes(mins) : 0;
-  const week = getChallengeWeek(date);
+  // In testing mode the week comes from the week selector; otherwise from the date.
+  const effectiveWeek = CHALLENGE.testingMode ? week : getChallengeWeek(date);
   const isOther = activity === "Other";
 
   const quickPts = quickMinutes && quickActivity ? pointsForMinutes(quickMinutes) : 0;
@@ -59,16 +73,17 @@ export default function ActivityForm({
   }
 
   async function logQuick() {
-    if (!supabase || !week || !quickActivity || !quickMinutes) return;
+    if (!supabase || !effectiveWeek || !quickActivity || !quickMinutes) return;
     setBusy(true);
     setError(null);
+    const entryDate = CHALLENGE.testingMode ? representativeDateForWeek(week, date) : date;
     const { error: dbError } = await supabase.from("activity_entries").insert({
       user_id: profile.id,
       activity: quickActivity,
       minutes: quickMinutes,
       points: pointsForMinutes(quickMinutes),
-      entry_date: date,
-      week,
+      entry_date: entryDate,
+      week: effectiveWeek,
     });
     setBusy(false);
     if (dbError) {
@@ -99,13 +114,14 @@ export default function ActivityForm({
     const activityLabel = isOther ? otherActivity.trim() : activity;
     setBusy(true);
     setError(null);
+    const entryDate = CHALLENGE.testingMode ? representativeDateForWeek(week, date) : date;
     const { error } = await supabase.from("activity_entries").insert({
       user_id: profile.id,
       activity: activityLabel,
       minutes: mins,
       points: pts,
-      entry_date: date,
-      week,
+      entry_date: entryDate,
+      week: effectiveWeek,
     });
     setBusy(false);
     if (error) setError(friendlyError(error));
@@ -174,17 +190,35 @@ export default function ActivityForm({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Date</label>
-            <input
-              type="date"
-              required
-              value={date}
-              {...(CHALLENGE.testingMode
-                ? {}
-                : { min: CHALLENGE.startDate, max: CHALLENGE.endDate })}
-              onChange={(e) => setDate(e.target.value)}
-              className={input}
-            />
+            {CHALLENGE.testingMode ? (
+              <>
+                <label className="mb-1 block text-sm font-medium">Challenge week</label>
+                <select
+                  value={week}
+                  onChange={(e) => setWeek(Number(e.target.value))}
+                  className={input}
+                >
+                  {[1, 2, 3, 4].map((w) => (
+                    <option key={w} value={w}>
+                      Week {w} · {["Physical", "Psychological", "Financial", "Social"][w - 1]}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <>
+                <label className="mb-1 block text-sm font-medium">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  min={CHALLENGE.startDate}
+                  max={CHALLENGE.endDate}
+                  onChange={(e) => setDate(e.target.value)}
+                  className={input}
+                />
+              </>
+            )}
           </div>
         </div>
         {pts > 0 && (
@@ -214,6 +248,29 @@ export default function ActivityForm({
           <p className="text-xs text-slate-500">
             Pick an activity, tap a duration, then tap Log. Repeat for each entry.
           </p>
+
+          {/* Week selector (testing mode only) */}
+          {CHALLENGE.testingMode && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-500">Challenge week</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[1, 2, 3, 4].map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => setWeek(w)}
+                    className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-colors ${
+                      week === w
+                        ? "border-emerald-500 bg-emerald-600 text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    W{w}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Activity picker */}
           <div>
