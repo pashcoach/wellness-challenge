@@ -72,7 +72,6 @@ export default function WeeklyRecap({
         <h2 id="weekly-recap-title" className="mt-1 text-2xl font-bold text-emerald-800">
           Week {recap.lastWeek.week} in review
         </h2>
-
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-emerald-50 p-3 text-center">
             <p className="text-xs text-emerald-700">Week {recap.lastWeek.week}</p>
@@ -103,7 +102,7 @@ export default function WeeklyRecap({
               <p className="text-xs text-slate-500">
                 {recap.bestDay
                   ? `${formatDate(recap.bestDay.date)} · ${recap.bestDay.points} pts`
-                  : "No activities logged last week"}
+                  : "No activities logged this week"}
               </p>
             </div>
           </div>

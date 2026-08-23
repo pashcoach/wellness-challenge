@@ -30,6 +30,15 @@ export function shouldShowWeeklyRecap(lastSeenWeek: string | null, displayWeek: 
   return displayWeek > 1 && lastSeenWeek !== String(displayWeek);
 }
 
+/**
+ * Build the recap shown in the pop-up.
+ *
+ * In production the pop-up reviews the *previous* completed week (displayWeek - 1),
+ * which is how it read during the live challenge. In testing mode the "week" the
+ * tester is looking at is arbitrary (dates map to weeks by day-of-month), so we
+ * review the displayed week itself — otherwise testers always see an empty
+ * "previous week" and think their points are missing.
+ */
 export function buildWeeklyRecap(
   activities: ActivityEntry[],
   checkins: WellnessCheckin[],
@@ -37,13 +46,13 @@ export function buildWeeklyRecap(
   activityStreak: number,
   totalPoints: number
 ): WeeklyRecapSummary {
-  const lastWeek = displayWeek - 1;
-  const weekBefore = displayWeek - 2;
-  const lastWeekPoints = pointsForWeek(activities, checkins, lastWeek);
+  const reviewingWeek = CHALLENGE.testingMode ? displayWeek : displayWeek - 1;
+  const weekBefore = reviewingWeek - 1;
+  const reviewingPoints = pointsForWeek(activities, checkins, reviewingWeek);
   const pointsByDate = new Map<string, number>();
 
   for (const activity of activities) {
-    if (activity.week !== lastWeek) continue;
+    if (activity.week !== reviewingWeek) continue;
     pointsByDate.set(activity.entry_date, (pointsByDate.get(activity.entry_date) ?? 0) + activity.points);
   }
 
@@ -59,9 +68,9 @@ export function buildWeeklyRecap(
   const pointsToGo = Math.max(0, CHALLENGE.totalPointGoal - totalPoints);
 
   return {
-    lastWeek: { week: lastWeek, points: lastWeekPoints },
+    lastWeek: { week: reviewingWeek, points: reviewingPoints },
     weekBefore: { week: weekBefore, points: pointsForWeek(activities, checkins, weekBefore) },
-    goalMet: lastWeekPoints >= CHALLENGE.weeklyPointGoal,
+    goalMet: reviewingPoints >= CHALLENGE.weeklyPointGoal,
     bestDay,
     activityStreak,
     pointsToGo,
