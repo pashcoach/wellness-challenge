@@ -66,7 +66,7 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
                   Welcome! 👋
                 </h2>
                 <p className="text-xs text-slate-500 landscape:text-xs landscape:mt-1">
-                  A 60-second tour
+                  A 30-second tour
                   <br />
                   <span className="hidden landscape:inline">(voiceover + subtitles)</span>
                   <span className="landscape:hidden">(subtitled)</span>
