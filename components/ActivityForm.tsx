@@ -246,11 +246,11 @@ export default function ActivityForm({
                   key={m}
                   type="button"
                   onClick={() => setQuickMinutes(m)}
-                  disabled={!quickActivity}
+                  disabled={!quickActivity || busy}
                   className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                     quickMinutes === m
                       ? "bg-emerald-600 text-white"
-                      : quickActivity
+                      : quickActivity && !busy
                         ? "border border-slate-300 bg-white text-slate-700 hover:border-emerald-400 hover:bg-emerald-50"
                         : "border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
                   }`}

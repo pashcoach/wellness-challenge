@@ -43,7 +43,14 @@ export default function Dashboard({
   const todayIsoStr = todayIso();
   const weekNow = currentChallengeWeek();
   const preChallenge = todayIsoStr < CHALLENGE.startDate;
-  const defaultWeek = preChallenge ? 1 : (weekNow ?? 4);
+  // In testing mode (pre-challenge), open on the week with the user's most
+  // recent entry so testers immediately see their accumulated points instead
+  // of an empty default week.
+  let defaultWeek = preChallenge ? 1 : (weekNow ?? 4);
+  if (CHALLENGE.testingMode && activities.length > 0) {
+    const latestWeek = Math.max(...activities.map((a) => a.week), ...checkins.map((c) => c.week));
+    if (latestWeek >= 1 && latestWeek <= 4) defaultWeek = latestWeek;
+  }
   const [displayWeek, setDisplayWeek] = useState(defaultWeek);
   const pillar = pillarForWeek(displayWeek);
   const [wrapUpGateMessage, setWrapUpGateMessage] = useState<string | null>(null);
