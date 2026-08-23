@@ -99,3 +99,10 @@ test("weekly recap is gated by the display week stored in local storage", () => 
   assert.equal(shouldShowWeeklyRecap("1", 2), true);
   assert.equal(shouldShowWeeklyRecap("2", 2), false);
 });
+
+test("weekly recap does not re-trigger when returning to earlier weeks", () => {
+  // Seen week 4 already; switching back to 3 or 2 must not re-open the pop-up.
+  assert.equal(shouldShowWeeklyRecap("4", 3), false);
+  assert.equal(shouldShowWeeklyRecap("4", 2), false);
+  assert.equal(shouldShowWeeklyRecap("3", 4), true); // advancing still triggers
+});

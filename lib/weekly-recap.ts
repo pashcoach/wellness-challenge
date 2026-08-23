@@ -26,8 +26,15 @@ function pointsForWeek(
   return activityPoints + checkinPoints;
 }
 
+/**
+ * Show the recap only when the tester/user advances to a week they haven't
+ * seen a recap for yet. Switching back to an earlier tab never re-triggers it
+ * (lastSeenWeek stores the highest week already shown).
+ */
 export function shouldShowWeeklyRecap(lastSeenWeek: string | null, displayWeek: number): boolean {
-  return displayWeek > 1 && lastSeenWeek !== String(displayWeek);
+  const seen = lastSeenWeek === null ? 0 : parseInt(lastSeenWeek, 10);
+  const seenNum = Number.isNaN(seen) ? 0 : seen;
+  return displayWeek > 1 && displayWeek > seenNum;
 }
 
 /**
