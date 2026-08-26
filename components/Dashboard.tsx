@@ -7,7 +7,6 @@ import { computeActivityStreak, computeCheckinStreak } from "@/lib/streaks";
 import { useCelebration } from "@/lib/useCelebration";
 import {
   CHALLENGE,
-  challengePhase,
   currentChallengeWeek,
   pillarForWeek,
   todayIso,
@@ -82,23 +81,6 @@ export default function Dashboard({
   };
 
   if (!profile) return null;
-  if (challengePhase() === "preregistration") {
-    return (
-      <main className="flex min-h-screen items-center justify-center p-4">
-        <div className="max-w-sm text-center">
-          <p className="text-lg font-semibold text-emerald-800">🔒 Challenge hasn&apos;t started yet</p>
-          <p className="mt-2 text-sm text-slate-500">
-            Pre-registration is open but activity logging starts <strong>October 5, 2026</strong>.
-          </p>
-          <Link href="/" className="mt-4 inline-block text-sm font-medium text-emerald-700 underline">
-            ← Back to home
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-
   const weekActivityPts = activities
     .filter((a) => a.week === displayWeek)
     .reduce((s, a) => s + a.points, 0);
@@ -309,12 +291,24 @@ export default function Dashboard({
           <h2 className="mb-3 font-bold">🏃 Log wellness activity</h2>
           {futureWeekLocked ? (
             <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-violet-900">
-              <p className="font-semibold">🔒 Nice try! Week {displayWeek} is not open yet.</p>
-              <p className="mt-1 text-sm">
-                We know you&apos;re excited, but activity logging for this week opens on{" "}
-                <strong>{challengeWeekStartDate(displayWeek)}</strong>. You can still switch back
-                to the current or an earlier week to add an activity you missed.
-              </p>
+              {preChallenge ? (
+                <>
+                  <p className="font-semibold">🔒 The Challenge starts October 5.</p>
+                  <p className="mt-1 text-sm">
+                    Your account is ready and you can explore the app now. Activity tracking opens
+                    when the Challenge begins.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">🔒 Nice try! Week {displayWeek} is not open yet.</p>
+                  <p className="mt-1 text-sm">
+                    We know you&apos;re excited, but activity logging for this week opens on{" "}
+                    <strong>{challengeWeekStartDate(displayWeek)}</strong>. You can still switch back
+                    to the current or an earlier week to add an activity you missed.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <ActivityForm profile={profile} onLogged={handleDataChanged} />

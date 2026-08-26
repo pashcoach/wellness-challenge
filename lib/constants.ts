@@ -1,3 +1,5 @@
+import { isTestingModeActive } from "./testing-mode";
+
 export const CHALLENGE = {
   name: "Wellness Challenge 2026",
   org: "Federated Co-operatives Limited",
@@ -7,7 +9,9 @@ export const CHALLENGE = {
   preregistrationStart: "2026-09-18",
   /** TESTING MODE: true = any date can be logged (mapped into the challenge).
    *  Production additionally requires ALLOW_PRODUCTION_TESTING_MODE=true. */
-  testingMode: process.env.NEXT_PUBLIC_TESTING_MODE === "true",
+  get testingMode() {
+    return isTestingModeActive(process.env.NEXT_PUBLIC_TESTING_MODE === "true");
+  },
   weeklyPointGoal: 140,
   totalPointGoal: 560,
   pointsPerTenMinutes: 10,

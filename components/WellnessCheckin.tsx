@@ -28,6 +28,7 @@ export default function WellnessCheckin({
   const [toast, setToast] = useState<string | null>(null);
 
   const pillar = pillarForWeek(week);
+  const preChallenge = todayIso() < CHALLENGE.startDate;
 
   async function handleCheck(e: React.FormEvent) {
     e.preventDefault();
@@ -101,10 +102,14 @@ export default function WellnessCheckin({
 
         {locked ? (
           <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">
-            <p className="font-semibold">🔒 This check-in opens on {challengeWeekStartDate(week)}.</p>
+            <p className="font-semibold">
+              🔒 {preChallenge
+                ? "The Challenge starts October 5."
+                : `This check-in opens on ${challengeWeekStartDate(week)}.`}
+            </p>
             <p className="mt-1 text-xs">
-              You can preview the wellness ideas now, but you will need to wait until Week {week}
-              to confirm the action and earn points.
+              You can preview the wellness ideas now, but check-ins and points are available only
+              after this week begins.
             </p>
           </div>
         ) : (
