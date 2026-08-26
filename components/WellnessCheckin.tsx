@@ -6,17 +6,20 @@ import { CHALLENGE, pillarForWeek, todayIso } from "@/lib/constants";
 import { friendlyError } from "@/lib/errors";
 import type { Profile, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
+import { challengeWeekStartDate } from "@/lib/week-access";
 
 export default function WellnessCheckin({
   profile,
   week,
   existing,
   onLogged,
+  locked = false,
 }: {
   profile: Profile;
   week: number;
   existing: WellnessCheckin | undefined;
   onLogged: () => void;
+  locked?: boolean;
 }) {
   const [confirmed, setConfirmed] = useState(false);
   const [comment, setComment] = useState("");
@@ -29,6 +32,10 @@ export default function WellnessCheckin({
   async function handleCheck(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return;
+    if (locked) {
+      setError(`Week ${week} check-ins open on ${challengeWeekStartDate(week)}.`);
+      return;
+    }
     if (!confirmed) {
       setError("Please confirm that you supported your health this week.");
       return;
@@ -92,6 +99,16 @@ export default function WellnessCheckin({
           These are examples — any action that supports your {pillar.label.toLowerCase()} counts!
         </p>
 
+        {locked ? (
+          <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900">
+            <p className="font-semibold">🔒 This check-in opens on {challengeWeekStartDate(week)}.</p>
+            <p className="mt-1 text-xs">
+              You can preview the wellness ideas now, but you will need to wait until Week {week}
+              to confirm the action and earn points.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* Simple confirmation checkbox */}
         <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
           <input
@@ -127,6 +144,8 @@ export default function WellnessCheckin({
         >
           {busy ? "Saving…" : `Confirm check-in (+${CHALLENGE.wellnessCheckInPoints} pts)`}
         </button>
+          </>
+        )}
       </form>
     </>
   );

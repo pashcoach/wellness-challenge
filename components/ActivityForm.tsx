@@ -6,6 +6,7 @@ import { ACTIVITIES, CHALLENGE, getChallengeWeek, pointsForMinutes, todayIso } f
 import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
+import { latestLoggableDate } from "@/lib/week-access";
 
 const QUICK_ACTIVITIES = [
   { emoji: "🚶", label: "Walking" },
@@ -74,6 +75,10 @@ export default function ActivityForm({
 
   async function logQuick() {
     if (!supabase || !effectiveWeek || !quickActivity || !quickMinutes) return;
+    if (!CHALLENGE.testingMode && date > latestLoggableDate(today)) {
+      setError("Future activities cannot be logged yet.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const entryDate = CHALLENGE.testingMode ? representativeDateForWeek(week, date) : date;
@@ -99,8 +104,12 @@ export default function ActivityForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return;
-    if (!week) {
+    if (!effectiveWeek) {
       setError("That date is outside the challenge (Oct 5 – Oct 30, 2026).");
+      return;
+    }
+    if (!CHALLENGE.testingMode && date > latestLoggableDate(today)) {
+      setError("Future activities cannot be logged yet. Choose today or an earlier date.");
       return;
     }
     if (!activity) {
@@ -213,7 +222,7 @@ export default function ActivityForm({
                   required
                   value={date}
                   min={CHALLENGE.startDate}
-                  max={CHALLENGE.endDate}
+                  max={latestLoggableDate(today)}
                   onChange={(e) => setDate(e.target.value)}
                   className={input}
                 />

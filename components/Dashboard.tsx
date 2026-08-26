@@ -28,6 +28,7 @@ import { WRAP_UP_GATE_MESSAGE_KEY } from "@/lib/wrap-up";
 import BadgeDisplay from "./BadgeDisplay";
 import { fetchUserBadges } from "@/lib/badge-utils";
 import type { UserBadge } from "@/lib/badge-utils";
+import { challengeWeekStartDate, isFutureChallengeWeek } from "@/lib/week-access";
 
 export default function Dashboard({
   profile,
@@ -53,6 +54,10 @@ export default function Dashboard({
   }
   const [displayWeek, setDisplayWeek] = useState(defaultWeek);
   const pillar = pillarForWeek(displayWeek);
+  // Testing mode intentionally leaves every week open so testers can exercise
+  // the whole app. Live participants can view future tabs, but cannot log yet.
+  const futureWeekLocked =
+    !CHALLENGE.testingMode && isFutureChallengeWeek(displayWeek, todayIsoStr);
   const [wrapUpGateMessage, setWrapUpGateMessage] = useState<string | null>(null);
   const [badges, setBadges] = useState<UserBadge[]>([]);
 
@@ -182,20 +187,25 @@ export default function Dashboard({
 
       {/* Week selector */}
       <div className="mt-4 flex gap-2">
-        {[1, 2, 3, 4].map((w) => (
-          <button
-            key={w}
-            onClick={() => setDisplayWeek(w)}
-            className={`flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-colors ${
-              displayWeek === w
-                ? "bg-emerald-600 text-white shadow"
-                : "bg-white text-slate-600 hover:bg-emerald-50 border border-slate-200"
-            }`}
-          >
-            <span className="block text-[10px] uppercase tracking-wide opacity-70">Week</span>
-            {w}
-          </button>
-        ))}
+        {[1, 2, 3, 4].map((w) => {
+          const future = !CHALLENGE.testingMode && isFutureChallengeWeek(w, todayIsoStr);
+          return (
+            <button
+              key={w}
+              onClick={() => setDisplayWeek(w)}
+              className={`flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-colors ${
+                displayWeek === w
+                  ? "bg-emerald-600 text-white shadow"
+                  : "bg-white text-slate-600 hover:bg-emerald-50 border border-slate-200"
+              }`}
+            >
+              <span className="block text-[10px] uppercase tracking-wide opacity-70">
+                {future ? "🔒 Week" : "Week"}
+              </span>
+              {w}
+            </button>
+          );
+        })}
       </div>
 
       {/* Points summary */}
@@ -274,7 +284,7 @@ export default function Dashboard({
       )}
 
       {/* Check-in nudge banner — shows when weekly check-in hasn't been done yet */}
-      {!checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
+      {!futureWeekLocked && !checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
         <div
           onClick={() =>
             document.getElementById("wellness-checkin-section")?.scrollIntoView({ behavior: "smooth" })
@@ -297,7 +307,18 @@ export default function Dashboard({
       <div id="wellness-checkin-section" className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-3 font-bold">🏃 Log wellness activity</h2>
-          <ActivityForm profile={profile} onLogged={handleDataChanged} />
+          {futureWeekLocked ? (
+            <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 text-violet-900">
+              <p className="font-semibold">🔒 Nice try! Week {displayWeek} is not open yet.</p>
+              <p className="mt-1 text-sm">
+                We know you&apos;re excited, but activity logging for this week opens on{" "}
+                <strong>{challengeWeekStartDate(displayWeek)}</strong>. You can still switch back
+                to the current or an earlier week to add an activity you missed.
+              </p>
+            </div>
+          ) : (
+            <ActivityForm profile={profile} onLogged={handleDataChanged} />
+          )}
         </div>
         <div className="space-y-4">
           <WellnessCheckin
@@ -305,6 +326,7 @@ export default function Dashboard({
             week={displayWeek}
             existing={checkins.find((c) => c.week === displayWeek)}
             onLogged={handleDataChanged}
+            locked={futureWeekLocked}
           />
         </div>
       </div>
@@ -378,7 +400,7 @@ export default function Dashboard({
 
       <FeedbackButton profile={profile} />
 
-      {!loading && !isBrandNew && (
+      {!loading && !isBrandNew && !futureWeekLocked && (
         <WeeklyRecap
           activities={activities}
           checkins={checkins}
