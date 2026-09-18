@@ -88,7 +88,6 @@ export const ACTIVITIES = [
   "Housework",
   "Martial Arts",
   "Meditation",
-  "Other",
   "Pickleball",
   "Pilates",
   "Playing with kids",
@@ -104,6 +103,7 @@ export const ACTIVITIES = [
   "Walking",
   "Yardwork",
   "Yoga",
+  "Other",
 ] as const;
 
 export const BUSINESS_UNITS = [
