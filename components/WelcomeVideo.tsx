@@ -66,7 +66,7 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
                   Welcome! 👋
                 </h2>
                 <p className="text-xs text-slate-500 landscape:text-xs landscape:mt-1">
-                  A 30-second tour
+                  A 35-second tour
                   <br />
                   <span className="hidden landscape:inline">(voiceover + subtitles)</span>
                   <span className="landscape:hidden">(subtitled)</span>
@@ -79,7 +79,7 @@ export default function WelcomeVideo({ onDone }: { onDone: () => void }) {
               <div className="relative mx-auto max-w-full landscape:max-w-3xl">
                 <video
                   ref={videoRef}
-                  src="/welcome.mp4"
+                  src="/welcome.mp4?v=patrick-voice-1"
                   muted={muted}
                   playsInline
                   onEnded={finish}
