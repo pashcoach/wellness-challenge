@@ -42,8 +42,7 @@ function activityRunLengths(datesDescending: string[]): number[] {
   return runs;
 }
 
-export function computeActivityStreak(activities: ActivityEntry[]): StreakResult {
-  const today = todayIso();
+export function computeActivityStreak(activities: ActivityEntry[], today: string = todayIso()): StreakResult {
   const dates = [...new Set(
     activities
       .map((activity) => activity.entry_date)

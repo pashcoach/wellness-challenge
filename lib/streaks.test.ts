@@ -4,24 +4,6 @@ import test from "node:test";
 // @ts-expect-error TS5097
 import { computeActivityStreak, computeCheckinStreak } from "./streaks.ts";
 import type { ActivityEntry, WellnessCheckin } from "./data";
-import { todayIso } from "./constants";
-
-function localDate(date: string): Date {
-  return new Date(`${date}T12:00:00`);
-}
-
-function addDays(date: string, days: number): string {
-  const result = localDate(date);
-  result.setDate(result.getDate() + days);
-  return todayIso(result);
-}
-
-function mostRecentMonday(): string {
-  const today = new Date(`${todayIso()}T12:00:00`);
-  const daysSinceMonday = (today.getDay() + 6) % 7;
-  today.setDate(today.getDate() - daysSinceMonday);
-  return todayIso(today);
-}
 
 function activity(entry_date: string, id = entry_date): ActivityEntry {
   return {
@@ -49,37 +31,43 @@ function checkin(week: number, id = String(week)): WellnessCheckin {
   };
 }
 
-test("activity streak treats Friday through Monday as consecutive weekdays", () => {
-  const monday = mostRecentMonday();
-  const entries = [activity(monday), activity(addDays(monday, -3))];
+// Fixed "today" anchor so the streak tests are deterministic regardless of the
+// real run date. 2026-10-12 is a Monday.
+const TODAY_MON = "2026-10-12";
 
-  assert.deepEqual(computeActivityStreak(entries), { current: 2, longest: 2 });
+test("activity streak treats Friday through Monday as consecutive weekdays", () => {
+  const entries = [activity("2026-10-12", "mon"), activity("2026-10-09", "fri")];
+
+  assert.deepEqual(computeActivityStreak(entries, TODAY_MON), { current: 2, longest: 2 });
 });
 
 test("activity streak counts each active calendar day once and ignores weekends", () => {
-  const monday = mostRecentMonday();
   const entries = [
-    activity(monday, "monday-1"),
-    activity(monday, "monday-2"),
-    activity(addDays(monday, -1), "sunday"),
-    activity(addDays(monday, -3), "friday"),
-    activity(addDays(monday, -4), "thursday"),
+    activity("2026-10-12", "mon-1"),
+    activity("2026-10-12", "mon-2"),
+    activity("2026-10-09", "fri"),
+    activity("2026-10-08", "thu"),
   ];
 
-  assert.deepEqual(computeActivityStreak(entries), { current: 3, longest: 3 });
+  assert.deepEqual(computeActivityStreak(entries, TODAY_MON), { current: 3, longest: 3 });
 });
 
 test("activity streak reports the latest run as current and a previous longer run as longest", () => {
-  const monday = mostRecentMonday();
   const entries = [
-    activity(monday),
-    activity(addDays(monday, -3)),
-    activity(addDays(monday, -7)),
-    activity(addDays(monday, -10)),
-    activity(addDays(monday, -11)),
+    activity("2026-10-12", "mon"),
+    activity("2026-10-09", "fri"),
+    activity("2026-10-05", "prior-mon"),
+    activity("2026-10-02", "prior-fri"),
+    activity("2026-10-01", "prior-thu"),
   ];
 
-  assert.deepEqual(computeActivityStreak(entries), { current: 2, longest: 3 });
+  assert.deepEqual(computeActivityStreak(entries, TODAY_MON), { current: 2, longest: 3 });
+});
+
+test("a week-old activity is not part of the current streak", () => {
+  const entries = [activity("2026-10-02", "old"), activity("2026-10-01", "old-2")];
+
+  assert.deepEqual(computeActivityStreak(entries, TODAY_MON), { current: 0, longest: 2 });
 });
 
 test("check-in streak deduplicates weeks and tracks current and longest runs", () => {
@@ -89,6 +77,6 @@ test("check-in streak deduplicates weeks and tracks current and longest runs", (
 });
 
 test("empty streak inputs return zeroes", () => {
-  assert.deepEqual(computeActivityStreak([]), { current: 0, longest: 0 });
+  assert.deepEqual(computeActivityStreak([], TODAY_MON), { current: 0, longest: 0 });
   assert.deepEqual(computeCheckinStreak([]), { current: 0, longest: 0 });
 });
