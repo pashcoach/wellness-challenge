@@ -35,6 +35,10 @@ export function friendlyError(err: unknown): string {
   if (/Password should be/i.test(msg))
     return "Password must be at least 6 characters.";
 
+  // Server-side pre-challenge lock raised by the database trigger
+  if (/opens on October 5, 2026/i.test(msg))
+    return "The Challenge starts October 5, 2026. Activity and check-in tracking open then.";
+
   // Fallback
   return "Something went wrong. Please try again — if it keeps happening, let Patrick know.";
 }
