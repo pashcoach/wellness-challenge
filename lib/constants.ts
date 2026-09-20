@@ -146,12 +146,20 @@ export function pillarForWeek(week: number) {
   return PILLARS[Math.min(4, Math.max(1, week)) - 1];
 }
 
-/** Today's date in YYYY-MM-DD using local (America/Regina) timezone.
- *  Saskatchewan is UTC-6 year-round (no DST). Using Date's local methods
- *  avoids the 6pm rollover bug where .toISOString() advances to tomorrow. */
+/** Today's date in YYYY-MM-DD using Saskatchewan (America/Regina) time.
+ *  Saskatchewan is UTC-6 year-round (no DST). Using the Regina timezone (not
+ *  the device's local timezone) ensures the challenge opens and closes at
+ *  12:00am Saskatchewan time for every participant, regardless of where they
+ *  are. */
 export function todayIso(d = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Regina",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 export function currentChallengeWeek(today = new Date()): number | null {
