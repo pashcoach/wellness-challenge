@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const { session, loading } = useAuth();
+  const { session, loading, signOut } = useAuth();
   const { profile, loading: profileLoading, refresh } = useProfile();
   const [teamChecked, setTeamChecked] = useState(false);
   const [welcomeChecked, setWelcomeChecked] = useState(false);
@@ -63,6 +63,13 @@ export default function Home() {
         <ActivityBackdrop />
         <div className="relative z-10 w-full max-w-md">
           <OnboardingForm userId={session.user.id} onDone={() => refresh()} />
+          <button
+            type="button"
+            onClick={signOut}
+            className="mt-6 block w-full py-1.5 text-center text-xs font-medium text-slate-500 hover:text-emerald-700"
+          >
+            Sign out
+          </button>
         </div>
       </main>
     );
