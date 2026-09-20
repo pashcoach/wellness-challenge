@@ -66,7 +66,7 @@ export default function Home() {
           <button
             type="button"
             onClick={signOut}
-            className="mt-6 block w-full rounded-lg border border-gray-900 bg-white py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-100"
+            className="mx-auto mt-6 block w-fit rounded-lg border border-gray-900 bg-white px-5 py-2 text-sm font-bold text-gray-900 hover:bg-gray-100"
           >
             Sign out
           </button>
