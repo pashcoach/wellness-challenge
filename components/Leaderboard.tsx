@@ -28,7 +28,7 @@ interface TeamRow {
 type Tab = "individual" | "weekly" | "teams";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
-const TOP_LIMIT = 10;
+const PAGE_SIZE = 10;
 
 function rankLabel(rank: number) {
   return MEDALS[rank - 1] ?? `${rank}.`;
@@ -84,6 +84,49 @@ function PinnedTeamRow({ pinned }: { pinned: PinnedEntry<TeamRow> }) {
   );
 }
 
+function PaginationControls({
+  page,
+  totalPages,
+  from,
+  to,
+  total,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  from: number;
+  to: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (total === 0) return null;
+  return (
+    <div className="mt-3 flex items-center justify-between gap-2">
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={page <= 0}
+        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+      >
+        ← Back
+      </button>
+      <p className="text-xs text-slate-500">
+        Showing {from}–{to} of {total} · Page {page + 1} of {totalPages}
+      </p>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={page >= totalPages - 1}
+        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+      >
+        Next →
+      </button>
+    </div>
+  );
+}
+
 export default function Leaderboard() {
   const { session } = useAuth();
   const [people, setPeople] = useState<PersonRow[]>([]);
@@ -91,6 +134,8 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("individual");
   const [selectedWeek, setSelectedWeek] = useState<number>(currentChallengeWeek() ?? 1);
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     if (!supabase) {
@@ -110,6 +155,18 @@ export default function Leaderboard() {
     load();
   }, [load]);
 
+  // Reset to the first page whenever the search or tab changes.
+  useEffect(() => {
+    setPage(0);
+  }, [search, tab]);
+
+  const searchTerm = search.trim().toLowerCase();
+  const matches = (p: PersonRow) =>
+    !searchTerm ||
+    p.display_name.toLowerCase().includes(searchTerm) ||
+    (p.team_name ?? "").toLowerCase().includes(searchTerm);
+
+  const individualRanked = useMemo(() => rankEntries(people, (person) => person.total), [people]);
   const weeklySorted = useMemo(
     () =>
       [...people].sort(
@@ -117,31 +174,39 @@ export default function Leaderboard() {
       ),
     [people, selectedWeek]
   );
-
-  const individualRanked = useMemo(() => rankEntries(people, (person) => person.total), [people]);
   const weeklyRanked = useMemo(
     () => rankEntries(weeklySorted, (person) => person[`w${selectedWeek}` as keyof PersonRow] as number),
-    [selectedWeek, weeklySorted]
+    [weeklySorted, selectedWeek]
   );
   const teamRanked = useMemo(() => rankEntries(teams, (team) => team.avg), [teams]);
 
-  const visibleIndividuals = individualRanked.slice(0, TOP_LIMIT);
-  const visibleWeekly = weeklyRanked.slice(0, TOP_LIMIT);
+  // Filter by search while preserving each person's true rank.
+  const filteredIndividual = searchTerm ? individualRanked.filter(({ entry }) => matches(entry)) : individualRanked;
+  const filteredWeekly = searchTerm ? weeklyRanked.filter(({ entry }) => matches(entry)) : weeklyRanked;
+
+  const totalPagesInd = Math.max(1, Math.ceil(filteredIndividual.length / PAGE_SIZE));
+  const pageInd = Math.min(page, totalPagesInd - 1);
+  const visibleIndividuals = filteredIndividual.slice(pageInd * PAGE_SIZE, (pageInd + 1) * PAGE_SIZE);
+
+  const totalPagesWk = Math.max(1, Math.ceil(filteredWeekly.length / PAGE_SIZE));
+  const pageWk = Math.min(page, totalPagesWk - 1);
+  const visibleWeekly = filteredWeekly.slice(pageWk * PAGE_SIZE, (pageWk + 1) * PAGE_SIZE);
+
   const visibleTeams = teamRanked;
+
   const userId = session?.user.id;
   const currentPerson = people.find((person) => person.id === userId);
-  const pinnedIndividual = getPinnedEntry(
-    individualRanked,
-    visibleIndividuals,
-    (person) => person.id === userId,
-    (person) => person.total
-  );
-  const pinnedWeekly = getPinnedEntry(
-    weeklyRanked,
-    visibleWeekly,
-    (person) => person.id === userId,
-    (person) => person[`w${selectedWeek}` as keyof PersonRow] as number
-  );
+  const pinnedIndividual = !searchTerm
+    ? getPinnedEntry(individualRanked, visibleIndividuals, (person) => person.id === userId, (person) => person.total)
+    : null;
+  const pinnedWeekly = !searchTerm
+    ? getPinnedEntry(
+        weeklyRanked,
+        visibleWeekly,
+        (person) => person.id === userId,
+        (person) => person[`w${selectedWeek}` as keyof PersonRow] as number
+      )
+    : null;
   const pinnedTeam = getPinnedEntry(
     teamRanked,
     visibleTeams,
@@ -181,6 +246,16 @@ export default function Leaderboard() {
 
   return (
     <div>
+      {/* Search */}
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search participants or teams…"
+        aria-label="Search leaderboard"
+        className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+      />
+
       {/* Tabs */}
       <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1 text-sm font-medium">
         {tabs.map((t) => (
@@ -206,27 +281,38 @@ export default function Leaderboard() {
 
       {/* Individual — overall cumulative */}
       {tab === "individual" && (
-        <ol className="space-y-2">
-          {people.length === 0 && <p className="text-sm text-slate-500">No participants yet.</p>}
-          {visibleIndividuals.map(({ entry: p, rank }) => (
-            <li
-              key={p.id}
-              className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                rank === 1 && p.total > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-7 text-center text-lg">{rankLabel(rank)}</span>
-                <div>
-                  <p className="text-sm font-semibold">{p.display_name}</p>
-                  {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
+        <div>
+          <ol className="space-y-2">
+            {visibleIndividuals.length === 0 && <p className="text-sm text-slate-500">No participants found.</p>}
+            {visibleIndividuals.map(({ entry: p, rank }) => (
+              <li
+                key={p.id}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                  rank === 1 && p.total > 0 ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-7 text-center text-lg">{rankLabel(rank)}</span>
+                  <div>
+                    <p className="text-sm font-semibold">{p.display_name}</p>
+                    {p.team_name && <p className="text-xs text-slate-500">{p.team_name}</p>}
+                  </div>
                 </div>
-              </div>
-              <p className="text-sm font-bold text-emerald-800">{p.total.toLocaleString()} pts</p>
-            </li>
-          ))}
-          {pinnedIndividual && <PinnedPersonRow pinned={pinnedIndividual} points={pinnedIndividual.entry.total} />}
-        </ol>
+                <p className="text-sm font-bold text-emerald-800">{p.total.toLocaleString()} pts</p>
+              </li>
+            ))}
+            {pinnedIndividual && <PinnedPersonRow pinned={pinnedIndividual} points={pinnedIndividual.entry.total} />}
+          </ol>
+          <PaginationControls
+            page={pageInd}
+            totalPages={totalPagesInd}
+            from={filteredIndividual.length ? pageInd * PAGE_SIZE + 1 : 0}
+            to={Math.min((pageInd + 1) * PAGE_SIZE, filteredIndividual.length)}
+            total={filteredIndividual.length}
+            onPrev={() => setPage(pageInd - 1)}
+            onNext={() => setPage(pageInd + 1)}
+          />
+        </div>
       )}
 
       {/* Weekly — fresh slate each week */}
@@ -254,6 +340,7 @@ export default function Leaderboard() {
             weekly prize draw!
           </p>
           <ol className="space-y-2">
+            {visibleWeekly.length === 0 && <p className="text-sm text-slate-500">No participants found.</p>}
             {visibleWeekly.map(({ entry: p, rank }) => {
               const weekPts = p[`w${selectedWeek}` as keyof PersonRow] as number;
               return (
@@ -285,6 +372,15 @@ export default function Leaderboard() {
               />
             )}
           </ol>
+          <PaginationControls
+            page={pageWk}
+            totalPages={totalPagesWk}
+            from={filteredWeekly.length ? pageWk * PAGE_SIZE + 1 : 0}
+            to={Math.min((pageWk + 1) * PAGE_SIZE, filteredWeekly.length)}
+            total={filteredWeekly.length}
+            onPrev={() => setPage(pageWk - 1)}
+            onNext={() => setPage(pageWk + 1)}
+          />
         </div>
       )}
 
