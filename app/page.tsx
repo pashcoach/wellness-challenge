@@ -9,7 +9,6 @@ import Dashboard from "@/components/Dashboard";
 
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import WelcomeVideo from "@/components/WelcomeVideo";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -17,7 +16,14 @@ export default function Home() {
   const { profile, loading: profileLoading, refresh } = useProfile();
   const [teamChecked, setTeamChecked] = useState(false);
   const [welcomeChecked, setWelcomeChecked] = useState(false);
-  const router = useRouter();
+
+  useEffect(() => {
+    // Remember a solo / "skip for now" choice so returning users aren't forced
+    // through team setup again (team-join users are covered by team_id below).
+    if (typeof window !== "undefined" && localStorage.getItem("teamSetupDone")) {
+      setTeamChecked(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (profile?.team_id) setTeamChecked(true);
@@ -83,9 +89,13 @@ export default function Home() {
           <TeamSetup
             profile={profile}
             onDone={() => {
+              // Skip "for now" means they'll participate solo. Persist it so they
+              // aren't re-prompted every login (they can still join a team later
+              // from the dashboard). NOTE: no router.refresh() here — in this
+              // Next version it resets client state and re-shows this screen.
+              localStorage.setItem("teamSetupDone", "1");
               setTeamChecked(true);
               refresh();
-              router.refresh();
             }}
           />
         </div>
