@@ -5,7 +5,8 @@ export function friendlyError(err: unknown): string {
   console.error("[friendlyError]", msg, err);
 
   // Postgres error codes
-  const code = (err as any)?.code;
+  const code =
+    err && typeof err === "object" ? (err as Record<string, unknown>).code : undefined;
   if (code === "23505") {
     if (/wellness_checkins/.test(msg)) return "You've already checked in this week. Nice work!";
     if (/teams_join_code/.test(msg)) return "That team code was already taken — try again.";
@@ -32,6 +33,8 @@ export function friendlyError(err: unknown): string {
     return "Please check your email for the confirmation link before signing in.";
   if (/User already registered/i.test(msg))
     return "An account with that email already exists. Try signing in instead.";
+  if (code === "same_password" || /password should be different|same password/i.test(msg))
+    return "Your new password must be different from your current password.";
   if (/Password should be/i.test(msg))
     return "Password must be at least 6 characters.";
 
