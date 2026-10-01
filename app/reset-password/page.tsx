@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
+import { parsePasswordRecoveryHash } from "@/lib/password-recovery";
 import { CHALLENGE } from "@/lib/constants";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import BrandMark from "@/components/BrandMark";
@@ -18,14 +20,70 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (!supabase) return;
-    // Supabase puts the recovery token in the URL; the client picks it up automatically.
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+
+    let settled = false;
+    let mounted = true;
+
+    const markReady = () => {
+      if (!mounted) return;
+      settled = true;
+      setError(null);
+      setReady(true);
+    };
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") markReady();
     });
-    // Also handle the case where the session is already established
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    async function initializeRecovery() {
+      if (!supabase) return;
+      const redirect = parsePasswordRecoveryHash(window.location.hash);
+
+      if (redirect.kind === "error") {
+        settled = true;
+        if (mounted) setError(redirect.message);
+        return;
+      }
+
+      if (redirect.kind === "tokens") {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: redirect.accessToken,
+          refresh_token: redirect.refreshToken,
+        });
+        if (!mounted) return;
+        if (sessionError) {
+          settled = true;
+          setError("This password reset link is invalid or has expired. Please request a new one.");
+          return;
+        }
+        window.history.replaceState(null, "", window.location.pathname);
+        markReady();
+        return;
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (!mounted) return;
+      if (data.session) markReady();
+      else if (sessionError) {
+        settled = true;
+        setError(friendlyError(sessionError));
+      }
+    }
+
+    void initializeRecovery();
+    const timeout = window.setTimeout(() => {
+      if (mounted && !settled) {
+        setError(
+          "We couldn't verify this reset link. Please return to sign in and request a fresh reset email."
+        );
+      }
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeout);
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -44,7 +102,7 @@ export default function ResetPasswordPage() {
   }
 
   const input =
-    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none";
 
   return (
     <main className="relative flex min-h-screen items-center justify-center p-4">
@@ -87,11 +145,20 @@ export default function ResetPasswordPage() {
               {busy ? "Saving…" : "Set new password"}
             </button>
           </form>
+        ) : error ? (
+          <div className="mt-4 space-y-3">
+            <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </p>
+            <Link
+              href="/"
+              className="block w-full rounded-lg bg-emerald-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Return to sign in
+            </Link>
+          </div>
         ) : (
-          <p className="mt-4 text-sm text-slate-600">
-            Verifying your reset link… If nothing happens, the link may have expired — go back and
-            request a new one.
-          </p>
+          <p className="mt-4 text-sm text-slate-600">Verifying your reset link…</p>
         )}
       </div>
     </main>
