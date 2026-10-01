@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import type { Session } from "@supabase/supabase-js";
+import { passwordRecoveryDestination } from "./password-recovery";
 
 interface AuthState {
   session: Session | null;
@@ -29,7 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      const destination = passwordRecoveryDestination(event, window.location.pathname);
+      if (destination) window.location.replace(destination);
+    });
     return () => sub.subscription.unsubscribe();
   }, [configured]);
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parsePasswordRecoveryHash } from "./password-recovery";
+import { parsePasswordRecoveryHash, passwordRecoveryDestination } from "./password-recovery";
 
 test("parses recovery tokens from a Supabase redirect hash", () => {
   assert.deepEqual(
@@ -29,4 +29,13 @@ test("returns a clear message when Supabase reports an expired recovery link", (
 
 test("returns none when the URL has no recovery information", () => {
   assert.deepEqual(parsePasswordRecoveryHash(""), { kind: "none" });
+});
+
+test("routes a recovery event from the app root to the reset page", () => {
+  assert.equal(passwordRecoveryDestination("PASSWORD_RECOVERY", "/"), "/reset-password");
+});
+
+test("does not redirect normal auth events or a recovery already on the reset page", () => {
+  assert.equal(passwordRecoveryDestination("SIGNED_IN", "/"), null);
+  assert.equal(passwordRecoveryDestination("PASSWORD_RECOVERY", "/reset-password"), null);
 });

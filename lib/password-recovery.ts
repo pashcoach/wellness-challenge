@@ -6,6 +6,12 @@ export type PasswordRecoveryRedirect =
 const EXPIRED_MESSAGE =
   "This password reset link is invalid or has expired. Please request a new one.";
 
+export function passwordRecoveryDestination(event: string, pathname: string): string | null {
+  return event === "PASSWORD_RECOVERY" && pathname !== "/reset-password"
+    ? "/reset-password"
+    : null;
+}
+
 /**
  * Reads the URL fragment returned by Supabase's client-side recovery flow.
  * Parsing this ourselves makes recovery reliable even when automatic session
