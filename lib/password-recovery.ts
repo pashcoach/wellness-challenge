@@ -17,8 +17,8 @@ export function isPasswordRecoveryCodeMode(search: string): boolean {
 
 export function parsePasswordRecoveryCode(input: string): PasswordRecoveryCode {
   const code = input.replace(/\s/g, "");
-  if (!/^\d{6}$/.test(code)) {
-    return { ok: false, message: "Enter the six-digit code from your newest reset email." };
+  if (!/^\d{6,10}$/.test(code)) {
+    return { ok: false, message: "Enter the numeric code from your newest reset email." };
   }
   return { ok: true, code };
 }

@@ -159,7 +159,7 @@ export default function ResetPasswordPage() {
           </div>
         </div>
         <p className="mt-3 text-sm text-slate-600">
-          {codeMode ? "Enter the six-digit code from your reset email" : "Choose a new password"}
+          {codeMode ? "Enter the numeric code from your reset email" : "Choose a new password"}
         </p>
         {codeMode ? (
           <form onSubmit={handleVerifyCode} className="mt-4 space-y-3">
@@ -177,8 +177,8 @@ export default function ResetPasswordPage() {
               required
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={7}
-              placeholder="Six-digit reset code"
+              maxLength={10}
+              placeholder="Reset code"
               value={recoveryCode}
               onChange={(e) => setRecoveryCode(e.target.value)}
               className={input}

@@ -41,11 +41,11 @@ test("recognizes the scanner-safe recovery-code page", () => {
   assert.equal(isPasswordRecoveryCodeMode(""), false);
 });
 
-test("normalizes a six-digit recovery code and rejects malformed codes", () => {
-  assert.deepEqual(parsePasswordRecoveryCode(" 123 456 "), { ok: true, code: "123456" });
+test("normalizes recovery codes from six to ten digits and rejects malformed codes", () => {
+  assert.deepEqual(parsePasswordRecoveryCode(" 5169 0976 "), { ok: true, code: "51690976" });
   assert.deepEqual(parsePasswordRecoveryCode("12345"), {
     ok: false,
-    message: "Enter the six-digit code from your newest reset email.",
+    message: "Enter the numeric code from your newest reset email.",
   });
 });
 
