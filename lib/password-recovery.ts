@@ -6,6 +6,23 @@ export type PasswordRecoveryRedirect =
 const EXPIRED_MESSAGE =
   "This password reset link is invalid or has expired. Please request a new one.";
 
+export type PasswordRecoveryCode =
+  | { ok: true; code: string }
+  | { ok: false; message: string };
+
+export function isPasswordRecoveryCodeMode(search: string): boolean {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  return params.get("code") === "1";
+}
+
+export function parsePasswordRecoveryCode(input: string): PasswordRecoveryCode {
+  const code = input.replace(/\s/g, "");
+  if (!/^\d{6}$/.test(code)) {
+    return { ok: false, message: "Enter the six-digit code from your newest reset email." };
+  }
+  return { ok: true, code };
+}
+
 export function passwordRecoveryDestination(event: string, pathname: string): string | null {
   return event === "PASSWORD_RECOVERY" && pathname !== "/reset-password"
     ? "/reset-password"

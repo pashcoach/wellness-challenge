@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
-import { parsePasswordRecoveryHash } from "@/lib/password-recovery";
+import {
+  isPasswordRecoveryCodeMode,
+  parsePasswordRecoveryCode,
+  parsePasswordRecoveryHash,
+} from "@/lib/password-recovery";
 import { CHALLENGE } from "@/lib/constants";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import BrandMark from "@/components/BrandMark";
@@ -14,6 +18,9 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [codeMode, setCodeMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
@@ -37,6 +44,13 @@ export default function ResetPasswordPage() {
 
     async function initializeRecovery() {
       if (!supabase) return;
+
+      if (isPasswordRecoveryCodeMode(window.location.search)) {
+        settled = true;
+        if (mounted) setCodeMode(true);
+        return;
+      }
+
       const redirect = parsePasswordRecoveryHash(window.location.hash);
 
       if (redirect.kind === "error") {
@@ -86,6 +100,35 @@ export default function ResetPasswordPage() {
     };
   }, []);
 
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supabase) return;
+
+    const parsedCode = parsePasswordRecoveryCode(recoveryCode);
+    if (!parsedCode.ok) {
+      setError(parsedCode.message);
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    const { error: verificationError } = await supabase.auth.verifyOtp({
+      email: recoveryEmail.trim(),
+      token: parsedCode.code,
+      type: "recovery",
+    });
+    setBusy(false);
+
+    if (verificationError) {
+      setError("That reset code is invalid or has expired. Request one new email and use its newest code.");
+      return;
+    }
+
+    window.history.replaceState(null, "", window.location.pathname);
+    setCodeMode(false);
+    setReady(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return;
@@ -115,8 +158,41 @@ export default function ResetPasswordPage() {
             <p className="text-xs text-slate-500">{CHALLENGE.org}</p>
           </div>
         </div>
-        <p className="mt-3 text-sm text-slate-600">Choose a new password</p>
-        {ready ? (
+        <p className="mt-3 text-sm text-slate-600">
+          {codeMode ? "Enter the six-digit code from your reset email" : "Choose a new password"}
+        </p>
+        {codeMode ? (
+          <form onSubmit={handleVerifyCode} className="mt-4 space-y-3">
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="Email address"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+              className={input}
+            />
+            <input
+              type="text"
+              required
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={7}
+              placeholder="Six-digit reset code"
+              value={recoveryCode}
+              onChange={(e) => setRecoveryCode(e.target.value)}
+              className={input}
+            />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {busy ? "Verifying…" : "Verify reset code"}
+            </button>
+          </form>
+        ) : ready ? (
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <input
               type="password"

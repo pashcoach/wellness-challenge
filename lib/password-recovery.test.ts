@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parsePasswordRecoveryHash, passwordRecoveryDestination } from "./password-recovery";
+import {
+  isPasswordRecoveryCodeMode,
+  parsePasswordRecoveryCode,
+  parsePasswordRecoveryHash,
+  passwordRecoveryDestination,
+} from "./password-recovery";
 
 test("parses recovery tokens from a Supabase redirect hash", () => {
   assert.deepEqual(
@@ -29,6 +34,19 @@ test("returns a clear message when Supabase reports an expired recovery link", (
 
 test("returns none when the URL has no recovery information", () => {
   assert.deepEqual(parsePasswordRecoveryHash(""), { kind: "none" });
+});
+
+test("recognizes the scanner-safe recovery-code page", () => {
+  assert.equal(isPasswordRecoveryCodeMode("?code=1"), true);
+  assert.equal(isPasswordRecoveryCodeMode(""), false);
+});
+
+test("normalizes a six-digit recovery code and rejects malformed codes", () => {
+  assert.deepEqual(parsePasswordRecoveryCode(" 123 456 "), { ok: true, code: "123456" });
+  assert.deepEqual(parsePasswordRecoveryCode("12345"), {
+    ok: false,
+    message: "Enter the six-digit code from your newest reset email.",
+  });
 });
 
 test("routes a recovery event from the app root to the reset page", () => {

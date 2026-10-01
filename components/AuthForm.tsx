@@ -51,7 +51,7 @@ export default function AuthForm() {
     });
     setBusy(false);
     if (error) setError(friendlyError(error));
-    else setNotice("Password reset email sent! Check your inbox (and spam folder).");
+    else setNotice("Password reset email sent! Use the instructions in the newest email.");
   }
 
   async function handleRecoverEmail(e: React.FormEvent) {
