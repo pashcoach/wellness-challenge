@@ -12,6 +12,7 @@ test("password field has an accessible visibility toggle", () => {
   assert.match(component, /type=\{visible \? "text" : "password"\}/);
   assert.match(component, /aria-label=\{visible \? "Hide password" : "Show password"\}/);
   assert.match(component, /aria-pressed=\{visible\}/);
+  assert.match(component, /\{!visible && <path/);
 });
 
 test("sign-in, sign-up, and both reset-password fields use the visibility control", () => {

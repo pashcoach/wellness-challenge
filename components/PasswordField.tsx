@@ -32,7 +32,7 @@ export default function PasswordField({ className = "", ...props }: PasswordFiel
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6S2.25 12 2.25 12Z" />
           <circle cx="12" cy="12" r="2.75" />
-          {visible && <path strokeLinecap="round" d="m4 4 16 16" />}
+          {!visible && <path strokeLinecap="round" d="m4 4 16 16" />}
         </svg>
       </button>
     </div>
