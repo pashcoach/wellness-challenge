@@ -21,6 +21,7 @@ import SectionSeparator from "./SectionSeparator";
 import BrandMark from "./BrandMark";
 import WeeklyRecap from "./WeeklyRecap";
 import TeamFeed from "./TeamFeed";
+import TeamRoster from "./TeamRoster";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
 import { WRAP_UP_GATE_MESSAGE_KEY } from "@/lib/wrap-up";
@@ -355,6 +356,7 @@ export default function Dashboard({
               📨 Invite coworkers: have them sign up, then either pick <strong>{team.name}</strong> from
               the team list or enter code <strong>{team.join_code}</strong> when they join.
             </p>
+            <TeamRoster profile={profile} />
           </div>
         ) : (
           <SoloTeamCard profile={profile} onJoined={handleDataChanged} />
