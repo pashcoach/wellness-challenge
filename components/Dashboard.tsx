@@ -22,6 +22,7 @@ import BrandMark from "./BrandMark";
 import WeeklyRecap from "./WeeklyRecap";
 import TeamFeed from "./TeamFeed";
 import TeamRoster from "./TeamRoster";
+import RefreshAppButton from "./RefreshAppButton";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
 import { WRAP_UP_GATE_MESSAGE_KEY } from "@/lib/wrap-up";
@@ -126,6 +127,7 @@ export default function Dashboard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <RefreshAppButton />
           {profile.is_admin && (
             <Link href="/admin" className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">
               Admin
