@@ -13,6 +13,7 @@ import {
 import { CHALLENGE } from "@/lib/constants";
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import BrandMark from "@/components/BrandMark";
+import PasswordField from "@/components/PasswordField";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -194,18 +195,18 @@ export default function ResetPasswordPage() {
           </form>
         ) : ready ? (
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-            <input
-              type="password"
+            <PasswordField
               required
+              autoComplete="new-password"
               minLength={6}
               placeholder="New password (6+ characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={input}
             />
-            <input
-              type="password"
+            <PasswordField
               required
+              autoComplete="new-password"
               minLength={6}
               placeholder="Confirm new password"
               value={confirm}

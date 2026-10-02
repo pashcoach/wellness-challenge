@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import { CHALLENGE } from "@/lib/constants";
 import BrandMark from "./BrandMark";
+import PasswordField from "./PasswordField";
 
 export default function AuthForm() {
   const { signIn, signUp, configured } = useAuth();
@@ -128,9 +129,9 @@ export default function AuthForm() {
           />
         )}
         {!showReset && !showRecoverEmail && (
-          <input
-            type="password"
+          <PasswordField
             required
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
             minLength={6}
             placeholder="Password (6+ characters)"
             value={password}
