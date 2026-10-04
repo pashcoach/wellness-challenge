@@ -16,10 +16,13 @@ test("participant support opens as Need help with guided FAQs and categorized co
   assert.match(feedbackSource, /Quick answers/);
   assert.match(feedbackSource, /How are points calculated\?/);
   assert.match(feedbackSource, /How do I leave, switch, or delete a team\?/);
-  assert.match(feedbackSource, /before your first entry in the app/i);
-  assert.match(feedbackSource, /checking “I supported my .* this week” and selecting “Confirm check-in/i);
-  assert.match(feedbackSource, /ownership transfers/i);
-  assert.match(feedbackSource, /After your first entry, team changes are locked\. Leave a message below for the app team to assist with this correction\./);
+  assert.match(feedbackSource, /Team changes are only possible before your first entry in the app/);
+  assert.match(feedbackSource, /To leave or switch teams: Open Your team, select Team options, and tap Leave team\./);
+  assert.match(feedbackSource, /To delete a team: Only the person who created the team can delete it, and only after every other member has left\./);
+  assert.match(feedbackSource, /If the creator leaves while others are still on the team, another member automatically becomes the team creator and the team continues\./);
+  assert.match(feedbackSource, /After your first entry: Team changes are locked\. Leave a message below and the app team will help\./);
+  assert.match(feedbackSource, /whitespace-pre-line/);
+  assert.doesNotMatch(feedbackSource, /ownership transfers/i);
   assert.doesNotMatch(feedbackSource, /Contact Patrick/);
   assert.match(feedbackSource, /choose Join a team.*pick a team from the list/i);
   assert.doesNotMatch(feedbackSource, /Join with a team code/);
