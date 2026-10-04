@@ -25,7 +25,7 @@ const FAQS = [
       "Team changes are only possible before your first entry in the app (logging a wellness activity or confirming a Weekly Wellness check-in).\n\n" +
       "To leave or switch teams: Open Your team, select Team options, and tap Leave team. You will then be participating solo. To switch, choose Join a team (or Create a team) from your solo team card.\n\n" +
       "To delete a team: Only the person who created the team can delete it, and only after every other member has left. If the creator leaves while others are still on the team, another member automatically becomes the team creator and the team continues.\n\n" +
-      "After your first entry: Team changes are locked. Leave a message below and the app team will help.",
+      "After your first entry: Team changes are locked. If you still need a team change, leave a message below and the app team will help.",
   },
   {
     question: "Why is activity logging locked?",
