@@ -8,6 +8,7 @@ import { friendlyError } from "@/lib/errors";
 import { summarizeActivitiesByType } from "@/lib/admin-analytics";
 import Link from "next/link";
 import { excludeFromStandings } from "@/lib/organizer-exclusion";
+import { validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
 
 interface Row {
   profiles: {
@@ -57,6 +58,11 @@ export default function AdminPage() {
   const [confirmDraw, setConfirmDraw] = useState<{ key: string; label: string } | null>(null);
   const [drawBusy, setDrawBusy] = useState(false);
   const [supportBusy, setSupportBusy] = useState<string | null>(null);
+  const [replies, setReplies] = useState<SupportReply[]>([]);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyBusy, setReplyBusy] = useState<string | null>(null);
+  const [replyErrors, setReplyErrors] = useState<Record<string, string>>({});
+  const [replySent, setReplySent] = useState<string | null>(null);
   const [supportError, setSupportError] = useState<string | null>(null);
 
   const isAdmin = profile?.is_admin === true;
@@ -71,6 +77,11 @@ export default function AdminPage() {
       supabase.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at").order("created_at", { ascending: false }),
       supabase.from("draw_results_view").select("*").order("drawn_at"),
     ]);
+    const replyResult = await supabase
+      .from("support_replies")
+      .select("id, request_id, body, created_at, email_sent_at")
+      .order("created_at");
+    setReplies((replyResult.data ?? []) as SupportReply[]);
     // Organizer accounts flagged out of standings are left out of every stat.
     const allProfiles = (profiles.data ?? []) as Row["profiles"];
     const counted = excludeFromStandings(allProfiles);
@@ -247,6 +258,48 @@ export default function AdminPage() {
     } : current);
   }
 
+  /** Sends a typed app-team reply (emailed to the participant and saved to the request). */
+  async function sendSupportReply(id: string, markResolved: boolean) {
+    if (!supabase) return;
+    const checked = validateSupportReply(replyDrafts[id] ?? "");
+    if (!checked.ok) {
+      setReplyErrors((current) => ({ ...current, [id]: checked.error }));
+      return;
+    }
+    setReplyBusy(id);
+    setReplySent(null);
+    setReplyErrors((current) => ({ ...current, [id]: "" }));
+    const { data: result, error } = await supabase.functions.invoke("reply-support-request", {
+      body: { requestId: id, message: checked.text, markResolved },
+    });
+    setReplyBusy(null);
+    if (error || !result?.replyId) {
+      let messageText = "The reply could not be sent. Please try again.";
+      try {
+        const body = await (error as { context?: Response })?.context?.json?.();
+        if (typeof body?.error === "string") messageText = body.error;
+      } catch {
+        // keep the generic message
+      }
+      setReplyErrors((current) => ({ ...current, [id]: messageText }));
+      return;
+    }
+    setReplies((current) => [
+      ...current,
+      { id: result.replyId, request_id: id, body: checked.text, created_at: result.createdAt, email_sent_at: result.emailSentAt },
+    ]);
+    setReplyDrafts((current) => ({ ...current, [id]: "" }));
+    setReplySent(id);
+    setData((current) => current ? {
+      ...current,
+      surveys: current.surveys.map((message) => message.id === id ? {
+        ...message,
+        status: result.status ?? message.status,
+        resolution_email_sent_at: markResolved ? result.emailSentAt : message.resolution_email_sent_at,
+      } : message),
+    } : current);
+  }
+
   /** Runs a rule-enforcing draw via SQL function. Draws are one-shot & permanent. */
   async function runDraw(key: string, label: string) {
     if (!supabase) return;
@@ -413,6 +466,73 @@ export default function AdminPage() {
                   {message.resolution_email_sent_at && (
                     <p className="mt-2 text-xs font-medium text-emerald-700">✓ Resolution email sent</p>
                   )}
+
+                  {replies.filter((r) => r.request_id === message.id).length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {replies.filter((r) => r.request_id === message.id).map((r) => (
+                        <div key={r.id} className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2">
+                          <p className="text-xs font-semibold text-emerald-800">
+                            App team reply · {new Date(r.created_at).toLocaleString()}
+                            {r.email_sent_at ? " · ✓ Reply emailed" : ""}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">{r.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <label htmlFor={`reply-${message.id}`} className="block text-xs font-semibold text-slate-700">
+                      Reply to participant
+                    </label>
+                    <p id={`reply-hint-${message.id}`} className="mt-0.5 text-xs text-slate-500">
+                      Your reply is emailed to the participant and shown in their My support requests.
+                    </p>
+                    <textarea
+                      id={`reply-${message.id}`}
+                      value={replyDrafts[message.id] ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setReplyDrafts((current) => ({ ...current, [message.id]: value }));
+                        if (replySent === message.id) setReplySent(null);
+                      }}
+                      rows={3}
+                      maxLength={SUPPORT_REPLY_MAX}
+                      disabled={replyBusy === message.id}
+                      aria-describedby={`reply-hint-${message.id}${replyErrors[message.id] ? ` reply-error-${message.id}` : ""}`}
+                      aria-invalid={replyErrors[message.id] ? true : undefined}
+                      placeholder="Type your reply…"
+                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:opacity-60"
+                    />
+                    {replyErrors[message.id] && (
+                      <p id={`reply-error-${message.id}`} role="alert" className="mt-1 text-sm text-red-600">
+                        {replyErrors[message.id]}
+                      </p>
+                    )}
+                    {replySent === message.id && (
+                      <p role="status" className="mt-1 text-sm font-medium text-emerald-700">✓ Reply sent to the participant.</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void sendSupportReply(message.id, false)}
+                        disabled={replyBusy === message.id || !(replyDrafts[message.id] ?? "").trim()}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {replyBusy === message.id ? "Sending…" : "Send reply"}
+                      </button>
+                      {message.status !== "resolved" && (
+                        <button
+                          type="button"
+                          onClick={() => void sendSupportReply(message.id, true)}
+                          disabled={replyBusy === message.id || !(replyDrafts[message.id] ?? "").trim()}
+                          className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                        >
+                          Send reply &amp; resolve
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </article>
               );
             })}

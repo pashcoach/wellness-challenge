@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
+import type { SupportReply } from "@/lib/support-replies";
 
 const FAQS = [
   {
@@ -79,6 +80,7 @@ export default function FeedbackButton({ profile }: { profile: Profile }) {
   const [toast, setToast] = useState(false);
   const [requests, setRequests] = useState<SupportRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
+  const [replies, setReplies] = useState<SupportReply[]>([]);
 
   async function loadRequests() {
     if (!supabase) return;
@@ -94,7 +96,19 @@ export default function FeedbackButton({ profile }: { profile: Profile }) {
       setError(friendlyError(error));
       return;
     }
-    setRequests((data ?? []) as SupportRequest[]);
+    const loaded = (data ?? []) as SupportRequest[];
+    setRequests(loaded);
+    if (loaded.length === 0) {
+      setReplies([]);
+      return;
+    }
+    // RLS limits these rows to replies on the participant's own requests.
+    const { data: replyRows } = await supabase
+      .from("support_replies")
+      .select("id, request_id, body, created_at, email_sent_at")
+      .in("request_id", loaded.map((request) => request.id))
+      .order("created_at");
+    setReplies((replyRows ?? []) as SupportReply[]);
   }
 
   function openHelp() {
@@ -213,6 +227,17 @@ export default function FeedbackButton({ profile }: { profile: Profile }) {
                         </span>
                       </div>
                       <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-sm text-slate-700">{request.feedback}</p>
+                      {replies.filter((reply) => reply.request_id === request.id).map((reply) => (
+                        <div key={reply.id} className="mt-2 rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2">
+                          <p className="text-xs font-semibold text-emerald-800">
+                            App team reply · {new Date(reply.created_at).toLocaleString()}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">{reply.body}</p>
+                        </div>
+                      ))}
+                      {replies.some((reply) => reply.request_id === request.id) && (
+                        <p className="mt-2 text-xs text-slate-500">To follow up, send a new message below.</p>
+                      )}
                     </article>
                   ))}
                 </div>
