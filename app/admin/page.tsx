@@ -104,7 +104,7 @@ export default function AdminPage() {
         members: pts.length,
         avg: Math.round(pts.reduce((s, v) => s + v, 0) / pts.length),
       }))
-      .sort((a, b) => b.avg - a.avg);
+      .sort((a, b) => b.avg - a.avg || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 
     const crcYes = active.filter((p) => p.located_at_crc).length;
 
@@ -319,7 +319,7 @@ export default function AdminPage() {
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold">🎁 Prize draws</h2>
         <p className="mb-3 text-xs text-slate-500">
-          Draws enforce the rules: weekly = 2 winners with 140+ pts that week, no repeat winners; grand = 140+ pts every week.
+          Draws enforce the rules: weekly = 2 winners with 140+ pts that week, no repeat winners; grand = 140+ pts every week and excludes weekly winners; random team = activity-eligible teams, excluding the top team.
           <strong> Each draw runs once and is permanent.</strong> Review winners, then add them to the email sequence doc.
         </p>
 
@@ -355,7 +355,7 @@ export default function AdminPage() {
           </button>
           <button
             disabled={drawHistory.some((d) => d.draw_key === "team_random") || drawBusy}
-            onClick={() => setConfirmDraw({ key: "team_random", label: "Random team lunch draw (all participating teams)" })}
+            onClick={() => setConfirmDraw({ key: "team_random", label: "Random team lunch draw (top team excluded)" })}
             className={`rounded-lg border px-3 py-2 text-sm font-medium ${
               drawHistory.some((d) => d.draw_key === "team_random")
                 ? "border-slate-200 bg-slate-100 text-slate-400"
