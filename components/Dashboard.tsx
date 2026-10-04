@@ -22,6 +22,7 @@ import BrandMark from "./BrandMark";
 import WeeklyRecap from "./WeeklyRecap";
 import TeamFeed from "./TeamFeed";
 import TeamRoster from "./TeamRoster";
+import TeamManagement from "./TeamManagement";
 import RefreshAppButton from "./RefreshAppButton";
 import type { Profile } from "@/lib/data";
 import Link from "next/link";
@@ -31,6 +32,7 @@ import { fetchUserBadges } from "@/lib/badge-utils";
 import type { UserBadge } from "@/lib/badge-utils";
 import { challengeWeekStartDate, isFutureChallengeWeek } from "@/lib/week-access";
 
+
 export default function Dashboard({
   profile,
   onProfileChange,
@@ -39,7 +41,18 @@ export default function Dashboard({
   onProfileChange: () => void;
 }) {
   const { signOut } = useAuth();
-  const { activities, checkins, team, loading, totalPoints, refresh } = useMyData(profile);
+  const {
+    activities,
+    checkins,
+    team,
+    teamLoadError,
+    canChangeTeam,
+    teamMemberCount,
+    teamMemberCountError,
+    loading,
+    totalPoints,
+    refresh,
+  } = useMyData(profile);
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
   const todayIsoStr = todayIso();
@@ -332,7 +345,19 @@ export default function Dashboard({
 
       {/* Team card */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
-        {team ? (
+        {profile.team_id && teamLoadError ? (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p className="font-semibold">We couldn&apos;t load your team.</p>
+            <p className="mt-1">Your team membership has not been changed.</p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="mt-3 min-h-11 rounded-lg border border-red-300 bg-white px-4 py-2 font-semibold focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              Try again
+            </button>
+          </div>
+        ) : team ? (
           <div>
             <div className="flex items-center justify-between">
               <div>
@@ -359,11 +384,23 @@ export default function Dashboard({
               the team list or enter code <strong>{team.join_code}</strong> when they join.
             </p>
             <TeamRoster profile={profile} />
+            <TeamManagement
+              profile={profile}
+              team={team}
+              canChange={canChangeTeam}
+              memberCount={teamMemberCount}
+              memberCountError={teamMemberCountError}
+              onChanged={handleDataChanged}
+            />
           </div>
         ) : (
-          <SoloTeamCard profile={profile} onJoined={handleDataChanged} />
+          <SoloTeamCard
+            profile={profile}
+            canChange={canChangeTeam}
+            onJoined={handleDataChanged}
+          />
         )}
-        {profile.team_id && (
+        {profile.team_id && !teamLoadError && (
           <div className="mt-4 border-t border-slate-100 pt-4">
             <TeamFeed profile={profile} />
           </div>

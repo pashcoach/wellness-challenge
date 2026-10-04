@@ -23,10 +23,7 @@ export default function TeamRoster({ profile }: { profile: Profile }) {
 
     setLoading(true);
     setError(false);
-    const { data, error: rosterError } = await supabase
-      .from("profiles")
-      .select("id, full_name, username")
-      .eq("team_id", profile.team_id);
+    const { data, error: rosterError } = await supabase.rpc("get_my_team_roster");
 
     if (rosterError) {
       console.error("Failed to load team roster:", rosterError);

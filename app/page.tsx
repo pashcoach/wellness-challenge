@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
   const { session, loading, signOut } = useAuth();
-  const { profile, loading: profileLoading, refresh } = useProfile();
+  const { profile, profileError, loading: profileLoading, refresh } = useProfile();
   const [teamChecked, setTeamChecked] = useState(false);
   const [welcomeChecked, setWelcomeChecked] = useState(false);
   const [disclaimerStatus, setDisclaimerStatus] = useState<"loading" | "required" | "accepted" | "error">("loading");
@@ -82,6 +82,34 @@ export default function Home() {
         <ActivityBackdrop />
         <div className="relative z-10 w-full max-w-sm">
           <AuthForm />
+        </div>
+      </main>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center p-4">
+        <ActivityBackdrop />
+        <div role="alert" className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-sm">
+          <h1 className="text-lg font-bold text-slate-900">We couldn&apos;t load your participant profile</h1>
+          <p className="mt-2 text-sm text-slate-600">Check your connection, then try again. Your account information has not been changed.</p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={signOut}
+              className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-900 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-700 focus-visible:ring-offset-2"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -159,6 +187,7 @@ export default function Home() {
         <div className="relative z-10 w-full max-w-md">
           <TeamSetup
             profile={profile}
+            onRefresh={refresh}
             onDone={() => {
               // Skip "for now" means they'll participate solo. Persist it so they
               // aren't re-prompted every login (they can still join a team later

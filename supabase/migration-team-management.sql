@@ -1,175 +1,7 @@
--- FCL CRC Wellness Challenge 2026 — Supabase schema
--- Run this in the Supabase SQL editor after creating the project.
-
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  full_name text not null,
-  username text,
-  business_unit text not null,
-  located_at_crc boolean not null default false,
-  age_range text not null,
-  team_id uuid,
-  is_admin boolean not null default false,
-  created_at timestamptz not null default now()
-);
-
--- If the table already exists, add the username column:
-alter table profiles add column if not exists username text;
-
-create table if not exists participant_acknowledgements (
-  user_id uuid primary key references profiles(id) on delete cascade,
-  disclaimer_version text not null,
-  health_risk_accepted_at timestamptz not null,
-  privacy_accepted_at timestamptz not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
--- Helper must exist before the teams table uses it as a column default.
-create or replace function gen_join_code() returns text language sql as $$
-  select upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 6));
-$$;
-
-create table if not exists teams (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  join_code text not null unique default gen_join_code(),
-  created_by uuid not null references profiles(id) on delete restrict,
-  created_at timestamptz not null default now()
-);
-
-alter table profiles
-  add constraint profiles_team_fk
-  foreign key (team_id) references teams(id) on delete set null;
-
-create table if not exists activity_entries (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  activity text not null,
-  minutes integer not null check (minutes > 0),
-  points integer not null,
-  entry_date date not null,
-  week integer not null,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists wellness_checkins (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  week integer not null,
-  pillar text not null,
-  comment text,
-  points integer not null,
-  entry_date date not null,
-  created_at timestamptz not null default now(),
-  unique (user_id, week)
-);
-
-create table if not exists survey_responses (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  feedback text not null check (char_length(btrim(feedback)) between 1 and 2000),
-  category text not null default 'feedback' check (category in ('feedback', 'help', 'problem', 'idea')),
-  status text not null default 'new' check (status in ('new', 'in_progress', 'resolved')),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  resolution_email_sent_at timestamptz
-);
-
--- Indexes
-create index if not exists idx_activity_user on activity_entries(user_id);
-create index if not exists idx_activity_date on activity_entries(entry_date);
-create index if not exists idx_checkins_user on wellness_checkins(user_id);
-create index if not exists idx_profiles_team on profiles(team_id);
-
--- Row Level Security
-alter table profiles enable row level security;
-alter table teams enable row level security;
-alter table activity_entries enable row level security;
-alter table wellness_checkins enable row level security;
-alter table survey_responses enable row level security;
-alter table participant_acknowledgements enable row level security;
-
-create or replace function has_current_disclaimer_acknowledgement()
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1
-    from public.participant_acknowledgements a
-    where a.user_id = auth.uid()
-      and a.disclaimer_version = '2026-10-04-v1'
-      and a.health_risk_accepted_at is not null
-      and a.privacy_accepted_at is not null
-  );
-$$;
-
-create or replace function accept_participant_disclaimer(p_version text)
-returns table (disclaimer_version text, health_risk_accepted_at timestamptz, privacy_accepted_at timestamptz)
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if auth.uid() is null then
-    raise exception using errcode = '42501', message = 'You must be signed in.';
-  end if;
-  if p_version <> '2026-10-04-v1' then
-    raise exception using errcode = '22023', message = 'The participant disclaimer has changed. Refresh and review the current version.';
-  end if;
-  insert into public.participant_acknowledgements (
-    user_id, disclaimer_version, health_risk_accepted_at, privacy_accepted_at, created_at, updated_at
-  )
-  values (auth.uid(), p_version, now(), now(), now(), now())
-  on conflict (user_id) do update
-  set disclaimer_version = excluded.disclaimer_version,
-      health_risk_accepted_at = excluded.health_risk_accepted_at,
-      privacy_accepted_at = excluded.privacy_accepted_at,
-      updated_at = excluded.updated_at;
-  return query
-  select a.disclaimer_version, a.health_risk_accepted_at, a.privacy_accepted_at
-  from public.participant_acknowledgements a
-  where a.user_id = auth.uid();
-end;
-$$;
-
--- Profile read/insert policies are defined with the secure team-management functions below.
--- Users update their own non-privileged profile fields.
-create policy "profiles_update_own" on profiles for update
-using (auth.uid() = id) with check (auth.uid() = id);
-
-create policy "acknowledgements_select_own" on participant_acknowledgements
-for select to authenticated using (auth.uid() = user_id);
-revoke all on table participant_acknowledgements from public, anon, authenticated;
-grant select on table participant_acknowledgements to authenticated;
-revoke all on function has_current_disclaimer_acknowledgement() from public, anon, authenticated;
-revoke all on function accept_participant_disclaimer(text) from public, anon, authenticated;
-grant execute on function has_current_disclaimer_acknowledgement() to authenticated;
-grant execute on function accept_participant_disclaimer(text) to authenticated;
-
--- Teams: discoverable after sign-in; mutations are restricted below to RPCs
-create policy "teams_read_authenticated" on teams for select to authenticated using (true);
-create policy "teams_insert_auth" on teams for insert with check (auth.uid() is not null);
-
--- Activity read policies are defined with the secure helper functions below.
-create policy "activity_insert_own" on activity_entries for insert
-with check (auth.uid() = user_id and has_current_disclaimer_acknowledgement());
-create policy "activity_update_own" on activity_entries for update using (auth.uid() = user_id);
-create policy "activity_delete_own" on activity_entries for delete using (auth.uid() = user_id);
-
--- Check-in read policies are defined with the secure helper functions below.
-create policy "checkins_insert_own" on wellness_checkins for insert
-with check (auth.uid() = user_id and has_current_disclaimer_acknowledgement());
-create policy "checkins_delete_own" on wellness_checkins for delete using (auth.uid() = user_id);
-
--- Survey: write own, read own (admins read via service role / export)
-create policy "survey_insert_own" on survey_responses for insert with check (auth.uid() = user_id);
-create policy "survey_read_own" on survey_responses for select using (auth.uid() = user_id);
-
 -- Transactional, irreversible team-management rules.
+
+begin;
+
 -- This marker is permanent for the participant, even if entries are later deleted.
 create table if not exists public.participant_team_locks (
   user_id uuid primary key references public.profiles(id) on delete cascade,
@@ -765,3 +597,57 @@ grant execute on function public.create_team_and_join(text) to authenticated;
 grant execute on function public.join_team(uuid) to authenticated;
 grant execute on function public.leave_current_team() to authenticated;
 grant execute on function public.delete_my_team() to authenticated;
+
+-- Structural checks fail if direct writes or serialization safeguards drift.
+do $$
+begin
+  if has_column_privilege('authenticated', 'public.profiles', 'team_id', 'UPDATE') then
+    raise exception 'Team management migration failed: direct team_id updates remain allowed';
+  end if;
+  if has_column_privilege('authenticated', 'public.profiles', 'team_id', 'INSERT')
+     or has_column_privilege('authenticated', 'public.profiles', 'is_admin', 'INSERT') then
+    raise exception 'Team management migration failed: privileged profile fields remain insertable';
+  end if;
+  if has_table_privilege('authenticated', 'public.teams', 'INSERT') then
+    raise exception 'Team management migration failed: direct team creation remains allowed';
+  end if;
+  if not exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.activity_entries'::regclass
+      and tgname = 'lock_team_changes_on_activity'
+      and not tgisinternal
+  ) or not exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.wellness_checkins'::regclass
+      and tgname = 'lock_team_changes_on_checkin'
+      and not tgisinternal
+  ) then
+    raise exception 'Team management migration failed: entry lock trigger is missing';
+  end if;
+  if has_function_privilege('anon', 'public.leave_current_team()', 'EXECUTE')
+     or has_function_privilege('anon', 'public.delete_my_team()', 'EXECUTE') then
+    raise exception 'Team management migration failed: anonymous execution is allowed';
+  end if;
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'profiles'
+      and policyname = 'profiles_read_all'
+  ) then
+    raise exception 'Team management migration failed: broad profile reads remain allowed';
+  end if;
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename in ('activity_entries', 'wellness_checkins')
+      and policyname in ('activity_read_all', 'checkins_read_all')
+  ) then
+    raise exception 'Team management migration failed: broad challenge-entry reads remain allowed';
+  end if;
+  if exists (select 1 from public.teams where created_by is null) then
+    raise exception 'Team management migration failed: an ownerless team remains';
+  end if;
+end;
+$$;
+
+commit;

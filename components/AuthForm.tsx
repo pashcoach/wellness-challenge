@@ -55,9 +55,10 @@ export default function AuthForm() {
     else setNotice("Password reset email sent! Use the instructions in the newest email.");
   }
 
-  async function handleRecoverEmail(e: React.FormEvent) {
+  function handleRecoverEmail(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setShowRecoverEmail(false);
     setNotice(
       `For privacy, account email lookups are handled by Patrick. Contact him with the name “${recoverName.trim()}” and he can help you identify the email on your account.`

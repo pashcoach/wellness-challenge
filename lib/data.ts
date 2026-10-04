@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
@@ -28,6 +28,7 @@ export interface Team {
   id: string;
   name: string;
   join_code: string;
+  created_by: string | null;
 }
 
 export interface ActivityEntry {
@@ -52,37 +53,77 @@ export interface WellnessCheckin {
   created_at: string;
 }
 
+export interface ProfileRefreshResult {
+  data: Profile | null;
+  error: unknown | null;
+}
+
 export function useProfile() {
   const { session } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const sessionUserId = session?.user.id ?? null;
+  const [profileState, setProfileState] = useState<
+    | { userId: string; status: "confirmed"; data: Profile | null }
+    | { userId: string; status: "error"; error: unknown }
+    | null
+  >(null);
   const [loading, setLoading] = useState(true);
+  const requestIdRef = useRef(0);
 
-  const refresh = useCallback(async () => {
-    if (!supabase || !session) {
-      setProfile(null);
+  const refresh = useCallback(async (): Promise<ProfileRefreshResult> => {
+    const requestId = ++requestIdRef.current;
+    if (!supabase || !sessionUserId) {
+      setProfileState(null);
       setLoading(false);
-      return;
+      return { data: null, error: null };
     }
-    const { data } = await supabase
+
+    setLoading(true);
+    const requestedUserId = sessionUserId;
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", requestedUserId)
       .maybeSingle();
-    setProfile(data as Profile | null);
+
+    // A newer refresh owns the state if the session changed while this read ran.
+    if (requestId !== requestIdRef.current) {
+      return { data: null, error: new Error("A newer participant profile request is in progress.") };
+    }
+
+    if (error) {
+      setProfileState((current) => {
+        if (current?.userId === requestedUserId && current.status === "confirmed") return current;
+        return { userId: requestedUserId, status: "error", error };
+      });
+      setLoading(false);
+      return { data: null, error };
+    }
+
+    setProfileState({ userId: requestedUserId, status: "confirmed", data: data as Profile | null });
     setLoading(false);
-  }, [session]);
+    return { data: data as Profile | null, error: null };
+  }, [sessionUserId]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
-  return { profile, loading, refresh };
+  const stateForSession = profileState?.userId === sessionUserId ? profileState : null;
+  const profile = stateForSession?.status === "confirmed" ? stateForSession.data : null;
+  const profileError = stateForSession?.status === "error" ? stateForSession.error : null;
+  const loadingForSession = loading || Boolean(sessionUserId && !stateForSession);
+
+  return { profile, profileError, loading: loadingForSession, refresh };
 }
 
 export function useMyData(profile: Profile | null) {
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
   const [checkins, setCheckins] = useState<WellnessCheckin[]>([]);
   const [team, setTeam] = useState<Team | null>(null);
+  const [teamLoadError, setTeamLoadError] = useState(false);
+  const [canChangeTeam, setCanChangeTeam] = useState(false);
+  const [teamMemberCount, setTeamMemberCount] = useState<number | null>(null);
+  const [teamMemberCountError, setTeamMemberCountError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -90,20 +131,35 @@ export function useMyData(profile: Profile | null) {
       setActivities([]);
       setCheckins([]);
       setTeam(null);
+      setTeamLoadError(false);
+      setCanChangeTeam(false);
+      setTeamMemberCount(null);
+      setTeamMemberCountError(false);
       setLoading(false);
       return;
     }
-    const [a, c] = await Promise.all([
+    const [a, c, eligibility, memberCount] = await Promise.all([
       supabase.from("activity_entries").select("*").eq("user_id", profile.id).order("entry_date", { ascending: false }),
       supabase.from("wellness_checkins").select("*").eq("user_id", profile.id).order("week"),
+      supabase.rpc("can_current_user_change_teams"),
+      supabase.rpc("get_my_team_member_count"),
     ]);
     setActivities((a.data as ActivityEntry[]) ?? []);
     setCheckins((c.data as WellnessCheckin[]) ?? []);
+    setCanChangeTeam(eligibility.error ? false : eligibility.data === true);
+    setTeamMemberCount(memberCount.error ? null : Number(memberCount.data));
+    setTeamMemberCountError(Boolean(memberCount.error));
     if (profile.team_id) {
-      const { data: t } = await supabase.from("teams").select("*").eq("id", profile.team_id).maybeSingle();
-      setTeam((t as Team) ?? null);
+      const { data: t, error: teamError } = await supabase
+        .from("teams")
+        .select("*")
+        .eq("id", profile.team_id)
+        .maybeSingle();
+      setTeam(teamError ? null : ((t as Team) ?? null));
+      setTeamLoadError(Boolean(teamError) || !t);
     } else {
       setTeam(null);
+      setTeamLoadError(false);
     }
     setLoading(false);
   }, [profile]);
@@ -115,5 +171,16 @@ export function useMyData(profile: Profile | null) {
   const totalPoints =
     activities.reduce((s, e) => s + e.points, 0) + checkins.reduce((s, e) => s + e.points, 0);
 
-  return { activities, checkins, team, loading, totalPoints, refresh };
+  return {
+    activities,
+    checkins,
+    team,
+    teamLoadError,
+    canChangeTeam,
+    teamMemberCount,
+    teamMemberCountError,
+    loading,
+    totalPoints,
+    refresh,
+  };
 }
