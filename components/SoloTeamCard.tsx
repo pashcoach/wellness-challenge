@@ -14,6 +14,11 @@ interface TeamRow {
   member_count: number;
 }
 
+interface TeamCountRow {
+  team_id: string;
+  member_count: number;
+}
+
 export default function SoloTeamCard({
   profile,
   onJoined,
@@ -32,14 +37,13 @@ export default function SoloTeamCard({
   const loadTeams = useCallback(async () => {
     if (!supabase) return;
     setLoadingTeams(true);
-    const [{ data: teamRows }, { data: profileRows }] = await Promise.all([
+    const [{ data: teamRows }, { data: countRows }] = await Promise.all([
       supabase.from("teams").select("id, name, join_code").order("created_at"),
-      supabase.from("profiles").select("team_id"),
+      supabase.rpc("get_team_member_counts"),
     ]);
-    const counts = new Map<string, number>();
-    for (const p of profileRows ?? []) {
-      if (p.team_id) counts.set(p.team_id, (counts.get(p.team_id) ?? 0) + 1);
-    }
+    const counts = new Map(
+      ((countRows ?? []) as TeamCountRow[]).map((row) => [row.team_id, Number(row.member_count)])
+    );
     setTeams((teamRows ?? []).map((t) => ({ ...t, member_count: counts.get(t.id) ?? 0 })));
     setLoadingTeams(false);
   }, []);

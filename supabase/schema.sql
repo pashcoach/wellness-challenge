@@ -62,9 +62,13 @@ create table if not exists wellness_checkins (
 
 create table if not exists survey_responses (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade unique,
-  feedback text not null,
-  created_at timestamptz not null default now()
+  user_id uuid not null references profiles(id) on delete cascade,
+  feedback text not null check (char_length(btrim(feedback)) between 1 and 2000),
+  category text not null default 'feedback' check (category in ('feedback', 'help', 'problem', 'idea')),
+  status text not null default 'new' check (status in ('new', 'in_progress', 'resolved')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  resolution_email_sent_at timestamptz
 );
 
 -- Indexes

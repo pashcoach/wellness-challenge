@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/data";
 import { friendlyError } from "@/lib/errors";
+import { summarizeActivitiesByType } from "@/lib/admin-analytics";
 import Link from "next/link";
 
 interface Row {
@@ -15,10 +16,21 @@ interface Row {
   teams: { id: string; name: string }[];
   activities: { user_id: string; activity: string; minutes: number; points: number; entry_date: string; week: number }[];
   checkins: { user_id: string; week: number; pillar: string; points: number; comment: string | null }[];
-  surveys: { user_id: string }[];
+  surveys: {
+    id: string;
+    user_id: string;
+    feedback: string;
+    category: "feedback" | "help" | "problem" | "idea";
+    status: "new" | "in_progress" | "resolved";
+    created_at: string;
+    resolution_email_sent_at: string | null;
+  }[];
 }
 
+type SupportStatus = Row["surveys"][number]["status"];
+
 interface DrawRecord {
+  id: string;
   draw_key: string;
   drawn_at: string;
   winner_name: string | null;
@@ -42,6 +54,8 @@ export default function AdminPage() {
   const [drawHistory, setDrawHistory] = useState<DrawRecord[]>([]);
   const [confirmDraw, setConfirmDraw] = useState<{ key: string; label: string } | null>(null);
   const [drawBusy, setDrawBusy] = useState(false);
+  const [supportBusy, setSupportBusy] = useState<string | null>(null);
+  const [supportError, setSupportError] = useState<string | null>(null);
 
   const isAdmin = profile?.is_admin === true;
 
@@ -52,8 +66,8 @@ export default function AdminPage() {
       supabase.from("teams").select("id, name"),
       supabase.from("activity_entries").select("user_id, activity, minutes, points, entry_date, week"),
       supabase.from("wellness_checkins").select("user_id, week, pillar, points, comment"),
-      supabase.from("survey_responses").select("user_id"),
-      supabase.from("draw_results").select("*").order("drawn_at"),
+      supabase.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at").order("created_at", { ascending: false }),
+      supabase.from("draw_results_view").select("*").order("drawn_at"),
     ]);
     setData({
       profiles: (profiles.data ?? []) as Row["profiles"],
@@ -140,14 +154,8 @@ export default function AdminPage() {
       });
     }
 
-    // ---- Activity frequency ----
-    const activityFreq = new Map<string, number>();
-    for (const a of data.activities) {
-      activityFreq.set(a.activity, (activityFreq.get(a.activity) ?? 0) + 1);
-    }
-    const topActivities = [...activityFreq.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
+    // ---- Activity engagement ----
+    const topActivities = summarizeActivitiesByType(data.activities);
 
     // ---- Demographics ----
     const byAgeRange = new Map<string, number>();
@@ -205,6 +213,32 @@ export default function AdminPage() {
     a.download = "wellness_challenge_2026_export.csv";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function updateSupportStatus(id: string, status: SupportStatus) {
+    if (!supabase) return;
+    setSupportBusy(id);
+    setSupportError(null);
+    const changedAt = new Date().toISOString();
+    const result = status === "resolved"
+      ? await supabase.functions.invoke("resolve-support-request", { body: { requestId: id } })
+      : await supabase
+          .from("survey_responses")
+          .update({ status, updated_at: changedAt })
+          .eq("id", id);
+    setSupportBusy(null);
+    if (result.error) {
+      setSupportError(friendlyError(result.error));
+      return;
+    }
+    setData((current) => current ? {
+      ...current,
+      surveys: current.surveys.map((message) => message.id === id ? {
+        ...message,
+        status,
+        resolution_email_sent_at: status === "resolved" ? changedAt : message.resolution_email_sent_at,
+      } : message),
+    } : current);
   }
 
   /** Runs a rule-enforcing draw via SQL function. Draws are one-shot & permanent. */
@@ -315,6 +349,71 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* Support inbox */}
+      <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-bold">💬 Support inbox</h2>
+            <p className="mt-1 text-xs text-slate-500">Private participant questions, problem reports, and ideas.</p>
+          </div>
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+            {data.surveys.filter((message) => message.status === "new").length} new
+          </span>
+        </div>
+
+        {supportError && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{supportError}</p>
+        )}
+
+        {data.surveys.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-500">No support messages yet.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {data.surveys.map((message) => {
+              const participant = data.profiles.find((person) => person.id === message.user_id);
+              const categoryLabel = {
+                feedback: "Feedback",
+                help: "Need help",
+                problem: "Problem",
+                idea: "Idea",
+              }[message.category];
+              return (
+                <article key={message.id} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-slate-800">{participant?.full_name ?? "Participant"}</p>
+                      <p className="text-xs text-slate-500">
+                        {participant?.business_unit ?? "Business unit unavailable"} · {new Date(message.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                      {categoryLabel}
+                    </span>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{message.feedback}</p>
+                  <label className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-600">
+                    Status
+                    <select
+                      value={message.status}
+                      disabled={supportBusy === message.id}
+                      onChange={(event) => updateSupportStatus(message.id, event.target.value as SupportStatus)}
+                      className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
+                    >
+                      <option value="new">New</option>
+                      <option value="in_progress">In progress</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+                  </label>
+                  {message.resolution_email_sent_at && (
+                    <p className="mt-2 text-xs font-medium text-emerald-700">✓ Resolution email sent</p>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* Prize draws */}
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold">🎁 Prize draws</h2>
@@ -384,7 +483,7 @@ export default function AdminPage() {
             <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Completed draws</h3>
             <ul className="space-y-1 text-sm">
               {drawHistory.map((d) => (
-                <li key={d.draw_key} className="flex justify-between text-slate-600">
+                <li key={d.id} className="flex justify-between text-slate-600">
                   <span className="font-medium capitalize">
                     {d.draw_key.replace("_", " ")}
                   </span>
@@ -493,11 +592,29 @@ export default function AdminPage() {
           {stats.topActivities.length === 0 ? (
             <p className="text-sm text-slate-500">No activities logged yet.</p>
           ) : (
-            <ol className="space-y-1 text-sm">
-              {stats.topActivities.map(([activity, count], i) => (
-                <li key={activity} className="flex justify-between">
-                  <span>{i + 1}. {activity}</span>
-                  <span className="font-semibold text-slate-500">{count}</span>
+            <ol className="space-y-3 text-sm">
+              {stats.topActivities.map((activity, i) => (
+                <li key={activity.activity} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-semibold text-slate-800">{i + 1}. {activity.activity}</span>
+                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                      {activity.percentOfTime}% of time
+                    </span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="font-bold text-slate-800">{activity.entries.toLocaleString()}</p>
+                      <p className="text-[11px] text-slate-500">Entries</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">{activity.totalMinutes.toLocaleString()}</p>
+                      <p className="text-[11px] text-slate-500">Total minutes</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">{activity.averageMinutes.toLocaleString()}</p>
+                      <p className="text-[11px] text-slate-500">Avg minutes</p>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ol>
