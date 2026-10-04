@@ -100,7 +100,9 @@ test("the team card exposes confirmed leave and creator-only delete controls", (
   assert.match(component, /Leave team/);
   assert.match(component, /Delete team/);
   assert.match(component, /team\.created_by === profile\.id/);
-  assert.match(component, /Team changes are locked after your first wellness activity or weekly check-in/);
+  assert.match(component, /Team changes are available only until you log your first wellness activity or weekly check-in/);
+  assert.match(component, /After that, leaving, switching, and deleting are locked/);
+  assert.match(component, /Before that cutoff, you can delete this team only after all other members have left/);
   assert.match(data, /get_my_team_member_count/);
   assert.match(data, /teamLoadError/);
   assert.match(dashboard, /<TeamManagement/);

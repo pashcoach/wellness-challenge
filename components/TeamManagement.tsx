@@ -69,6 +69,10 @@ export default function TeamManagement({
   return (
     <div className="mt-4 border-t border-slate-100 pt-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Team options</p>
+      <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+        Team changes are available only until you log your first wellness activity or weekly check-in.
+        After that, leaving, switching, and deleting are locked.
+      </p>
 
       {confirmation === null && (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -100,8 +104,8 @@ export default function TeamManagement({
 
       {isCreator && memberCount !== null && memberCount > 1 && confirmation === null && (
         <p className="mt-2 text-xs text-slate-500">
-          You can delete this team only after all other members have left. You can still leave;
-          team ownership will transfer automatically to another member.
+          Before that cutoff, you can delete this team only after all other members have left. You
+          can still leave; team ownership will transfer automatically to another member.
         </p>
       )}
 
