@@ -6,16 +6,40 @@ import AuthForm from "@/components/AuthForm";
 import OnboardingForm from "@/components/OnboardingForm";
 import TeamSetup from "@/components/TeamSetup";
 import Dashboard from "@/components/Dashboard";
+import ParticipantDisclaimer from "@/components/ParticipantDisclaimer";
+import { hasAcceptedCurrentDisclaimer } from "@/lib/disclaimer";
+import { supabase } from "@/lib/supabase";
 
 import ActivityBackdrop from "@/components/ActivityBackdrop";
 import WelcomeVideo from "@/components/WelcomeVideo";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
   const { session, loading, signOut } = useAuth();
   const { profile, loading: profileLoading, refresh } = useProfile();
   const [teamChecked, setTeamChecked] = useState(false);
   const [welcomeChecked, setWelcomeChecked] = useState(false);
+  const [disclaimerStatus, setDisclaimerStatus] = useState<"loading" | "required" | "accepted" | "error">("loading");
+
+  const loadDisclaimer = useCallback(async () => {
+    if (!supabase || !profile) {
+      return;
+    }
+    const { data, error } = await supabase
+      .from("participant_acknowledgements")
+      .select("disclaimer_version, health_risk_accepted_at, privacy_accepted_at")
+      .eq("user_id", profile.id)
+      .maybeSingle();
+    if (error) {
+      setDisclaimerStatus("error");
+      return;
+    }
+    setDisclaimerStatus(hasAcceptedCurrentDisclaimer(data) ? "accepted" : "required");
+  }, [profile]);
+
+  useEffect(() => {
+    void loadDisclaimer();
+  }, [loadDisclaimer]);
 
   useEffect(() => {
     // Remember a solo / "skip for now" choice so returning users aren't forced
@@ -78,6 +102,53 @@ export default function Home() {
           </button>
         </div>
       </main>
+    );
+  }
+
+  if (disclaimerStatus === "loading") {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <p className="text-slate-500">Checking participant acknowledgement…</p>
+      </main>
+    );
+  }
+
+  if (disclaimerStatus === "error") {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-sm">
+          <h1 className="text-lg font-bold text-slate-900">We couldn&apos;t load the participant disclaimer</h1>
+          <p className="mt-2 text-sm text-slate-600">Check your connection, then try again.</p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setDisclaimerStatus("loading");
+                void loadDisclaimer();
+              }}
+              className="min-h-11 rounded-lg bg-emerald-700 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={signOut}
+              className="min-h-11 rounded-lg border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (disclaimerStatus === "required") {
+    return (
+      <ParticipantDisclaimer
+        onAccepted={() => setDisclaimerStatus("accepted")}
+        onSignOut={signOut}
+      />
     );
   }
 

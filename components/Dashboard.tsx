@@ -407,6 +407,15 @@ export default function Dashboard({
           totalPoints={totalPoints}
         />
       )}
+
+      <footer className="mt-8 border-t border-slate-200 py-5 text-center">
+        <Link
+          href="/disclaimer"
+          className="text-xs font-medium text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          View participant disclaimer
+        </Link>
+      </footer>
     </div>
   );
 }
