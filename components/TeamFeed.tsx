@@ -11,10 +11,8 @@ interface TeamActivityEntry {
   minutes: number;
   points: number;
   created_at: string;
-  profiles: {
-    full_name: string;
-    username: string | null;
-  } | null;
+  full_name: string;
+  username: string | null;
 }
 
 export default function TeamFeed({ profile }: { profile: Profile }) {
@@ -27,25 +25,7 @@ export default function TeamFeed({ profile }: { profile: Profile }) {
     }
 
     try {
-      const { data: members, error: membersError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("team_id", profile.team_id);
-
-      if (membersError) throw membersError;
-
-      const memberIds = (members ?? []).map((member) => member.id);
-      if (memberIds.length === 0) {
-        setEntries([]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("activity_entries")
-        .select("*, profiles(full_name, username)")
-        .in("user_id", memberIds)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      const { data, error } = await supabase.rpc("get_my_team_activity");
 
       if (error) throw error;
       setEntries((data as TeamActivityEntry[] | null) ?? []);
@@ -73,7 +53,7 @@ export default function TeamFeed({ profile }: { profile: Profile }) {
       ) : (
         <ul className="divide-y divide-slate-100">
           {entries.map((entry) => {
-            const name = entry.profiles ? displayName(entry.profiles) : "Teammate";
+            const name = displayName(entry);
             return (
               <li key={entry.id} className="py-2 text-sm text-slate-700 first:pt-0 last:pb-0">
                 👤 <span className="font-medium text-slate-900">{name}</span> — {entry.activity},{" "}

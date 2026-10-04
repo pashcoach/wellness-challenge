@@ -24,7 +24,7 @@ test("dashboard offers teammates a collapsible privacy-safe roster", () => {
   const dashboard = readFileSync(resolve(process.cwd(), "components/Dashboard.tsx"), "utf8");
 
   assert.match(component, /View team roster/);
-  assert.match(component, /\.select\("id, full_name, username"\)/);
+  assert.match(component, /\.rpc\("get_my_team_roster"\)/);
   assert.doesNotMatch(component, /email|phone/i);
   assert.match(component, /\(You\)/);
   assert.match(dashboard, /<TeamRoster profile=\{profile\}/);

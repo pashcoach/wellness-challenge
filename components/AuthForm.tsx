@@ -55,28 +55,14 @@ export default function AuthForm() {
     else setNotice("Password reset email sent! Use the instructions in the newest email.");
   }
 
-  async function handleRecoverEmail(e: React.FormEvent) {
+  function handleRecoverEmail(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) return;
-    setBusy(true);
     setError(null);
     setNotice(null);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("full_name", recoverName.trim())
-      .limit(1);
-    setBusy(false);
-    if (error || !data || data.length === 0) {
-      setError(
-        "We couldn't find an account under that name. Check the spelling, or contact Patrick to look it up for you."
-      );
-      return;
-    }
     setShowRecoverEmail(false);
     setShowReset(true);
     setNotice(
-      "Good news — an account exists under that name! For privacy we can't display the email on screen. Enter any email you might have used (work or personal) below — the reset link will only arrive if it's the one on your account."
+      "For privacy, account details are not displayed here. Enter any email you might have used (work or personal) below — the reset link will only arrive if it matches your account."
     );
   }
 

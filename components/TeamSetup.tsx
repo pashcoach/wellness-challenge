@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
-import type { Profile } from "@/lib/data";
-import { teamJoinCodeFromUuid } from "@/lib/team-code";
+import type { Profile, ProfileRefreshResult } from "@/lib/data";
+import { hasConfirmedTeamMembership } from "@/lib/team-management";
+
 
 interface TeamRow {
   id: string;
@@ -14,84 +15,96 @@ interface TeamRow {
 }
 
 export default function TeamSetup({
-  profile,
   onDone,
+  onRefresh,
 }: {
   profile: Profile;
   onDone: () => void;
+  onRefresh: () => Promise<ProfileRefreshResult>;
 }) {
   const [mode, setMode] = useState<"choose" | "create" | "join">("choose");
   const [teamName, setTeamName] = useState("");
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
+  const [teamLoadError, setTeamLoadError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const loadTeams = useCallback(async () => {
     if (!supabase) return;
     setLoadingTeams(true);
-    const [{ data: teamRows }, { data: profileRows }] = await Promise.all([
-      supabase.from("teams").select("id, name, join_code").order("created_at"),
-      supabase.from("profiles").select("team_id"),
-    ]);
-    const counts = new Map<string, number>();
-    for (const p of profileRows ?? []) {
-      if (p.team_id) counts.set(p.team_id, (counts.get(p.team_id) ?? 0) + 1);
+    setTeamLoadError(false);
+    try {
+      const [teamResult, countResult] = await Promise.all([
+        supabase.from("teams").select("id, name, join_code").order("created_at"),
+        supabase.rpc("get_team_member_counts"),
+      ]);
+      if (teamResult.error) throw teamResult.error;
+      if (countResult.error) throw countResult.error;
+      const counts = new Map<string, number>();
+      for (const row of countResult.data ?? []) {
+        counts.set(row.team_id, Number(row.member_count));
+      }
+      setTeams(
+        (teamResult.data ?? []).map((team) => ({
+          ...team,
+          member_count: counts.get(team.id) ?? 0,
+        }))
+      );
+    } catch {
+      setTeams([]);
+      setTeamLoadError(true);
+    } finally {
+      setLoadingTeams(false);
     }
-    setTeams(
-      (teamRows ?? []).map((t) => ({
-        ...t,
-        member_count: counts.get(t.id) ?? 0,
-      }))
-    );
-    setLoadingTeams(false);
   }, []);
 
-  useEffect(() => {
-    if (mode === "join") loadTeams();
-  }, [mode, loadTeams]);
 
   async function createTeam(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase) return;
     setBusy(true);
     setError(null);
-    const teamId = crypto.randomUUID();
-    const { data: team, error: tErr } = await supabase
-      .from("teams")
-      .insert({
-        id: teamId,
-        name: teamName.trim(),
-        join_code: teamJoinCodeFromUuid(teamId),
-        created_by: profile.id,
-      })
-      .select()
-      .single();
-    if (tErr || !team) {
+    try {
+      const { error: createError } = await supabase.rpc("create_team_and_join", {
+        p_name: teamName.trim(),
+      });
+      if (createError) throw createError;
+      const refreshed = await onRefresh();
+      if (!hasConfirmedTeamMembership(refreshed)) {
+        setError("Your team was created, but membership could not be confirmed. Please try again.");
+        return;
+      }
+      onDone();
+    } catch (createError) {
+      setError(friendlyError(createError));
+      const refreshed = await onRefresh();
+      if (hasConfirmedTeamMembership(refreshed)) onDone();
+    } finally {
       setBusy(false);
-      setError(tErr ? friendlyError(tErr) : "Could not create team.");
-      return;
     }
-    const { error: pErr } = await supabase
-      .from("profiles")
-      .update({ team_id: team.id })
-      .eq("id", profile.id);
-    setBusy(false);
-    if (pErr) setError(friendlyError(pErr));
-    else onDone();
   }
 
   async function joinTeam(teamId: string) {
     if (!supabase) return;
     setBusy(true);
     setError(null);
-    const { error: pErr } = await supabase
-      .from("profiles")
-      .update({ team_id: teamId })
-      .eq("id", profile.id);
-    setBusy(false);
-    if (pErr) setError(friendlyError(pErr));
-    else onDone();
+    try {
+      const { error: joinError } = await supabase.rpc("join_team", { p_team: teamId });
+      if (joinError) throw joinError;
+      const refreshed = await onRefresh();
+      if (!hasConfirmedTeamMembership(refreshed)) {
+        setError("Your team membership could not be confirmed. Please try again.");
+        return;
+      }
+      onDone();
+    } catch (joinError) {
+      setError(friendlyError(joinError));
+      const refreshed = await onRefresh();
+      if (hasConfirmedTeamMembership(refreshed)) onDone();
+    } finally {
+      setBusy(false);
+    }
   }
 
   const input =
@@ -119,7 +132,10 @@ export default function TeamSetup({
             Create a new team
           </button>
           <button
-            onClick={() => setMode("join")}
+            onClick={() => {
+              setMode("join");
+              void loadTeams();
+            }}
             className="w-full rounded-lg border border-emerald-600 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
           >
             Join an existing team
@@ -164,6 +180,13 @@ export default function TeamSetup({
         <div className="mt-4 space-y-3">
           {loadingTeams ? (
             <p className="text-sm text-slate-500">Loading teams…</p>
+          ) : teamLoadError ? (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <p>We couldn&apos;t load the team list.</p>
+              <button type="button" onClick={() => void loadTeams()} className="mt-2 font-semibold underline">
+                Try again
+              </button>
+            </div>
           ) : teams.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
               <p className="text-sm font-medium text-slate-700">No teams yet!</p>

@@ -42,6 +42,13 @@ export function friendlyError(err: unknown): string {
   if (/opens on October 5, 2026/i.test(msg))
     return "The Challenge starts October 5, 2026. Activity and check-in tracking open then.";
 
+  if (/Team changes are locked after your first wellness activity or weekly check-in/i.test(msg))
+    return "Team changes are locked because you have already logged a wellness activity or weekly check-in. Contact Patrick if a correction is needed.";
+  if (/cannot be deleted until you are its only remaining member/i.test(msg))
+    return "You can delete this team only after all other members have left.";
+  if (/Only the team creator can delete this team/i.test(msg))
+    return "Only the team creator can delete this team.";
+
   // Fallback
   return "Something went wrong. Please try again — if it keeps happening, let Patrick know.";
 }
