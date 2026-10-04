@@ -60,7 +60,9 @@ export default function TeamManagement({
   if (!canChange) {
     return (
       <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-        <p className="font-semibold text-slate-700">Team changes are locked after your first wellness activity or weekly check-in.</p>
+        <p className="font-semibold text-slate-700">
+          Team changes are locked because you have already made your first entry in the app.
+        </p>
         <p className="mt-1">Contact Patrick if a correction is needed.</p>
       </div>
     );
@@ -70,8 +72,8 @@ export default function TeamManagement({
     <div className="mt-4 border-t border-slate-100 pt-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Team options</p>
       <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-        Team changes are available only until you log your first wellness activity or weekly check-in.
-        After that, leaving, switching, and deleting are locked.
+        You can change teams only before your first entry in the app. An entry is made when you either
+        log a wellness activity or complete the Weekly Wellness section by checking “I supported my … this week” and selecting “Confirm check-in.” After either action, leaving, switching, and deleting a team are locked.
       </p>
 
       {confirmation === null && (

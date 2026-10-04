@@ -15,7 +15,7 @@ test("explains that a reset password must be different from the current password
 test("explains when team changes are locked", () => {
   assert.equal(
     friendlyError({ message: "Team changes are locked after your first wellness activity or weekly check-in." }),
-    "Team changes are locked because you have already logged a wellness activity or weekly check-in. Contact Patrick if a correction is needed."
+    "Team changes are locked because you have already made your first entry in the app by logging a wellness activity or completing the Weekly Wellness section. Contact Patrick if a correction is needed."
   );
 });
 

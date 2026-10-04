@@ -109,7 +109,8 @@ export default function SoloTeamCard({
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
           <p>You&apos;re participating solo.</p>
           <p className="mt-1 text-xs font-medium text-slate-700">
-            Team changes are locked after your first wellness activity or weekly check-in.
+            Team changes are locked after your first entry in the app: either logging a wellness
+            activity or completing the Weekly Wellness section.
           </p>
           <p className="mt-1 text-xs">Contact Patrick if a correction is needed.</p>
         </div>

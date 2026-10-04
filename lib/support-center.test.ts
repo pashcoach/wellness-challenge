@@ -16,7 +16,8 @@ test("participant support opens as Need help with guided FAQs and categorized co
   assert.match(feedbackSource, /Quick answers/);
   assert.match(feedbackSource, /How are points calculated\?/);
   assert.match(feedbackSource, /How do I leave, switch, or delete a team\?/);
-  assert.match(feedbackSource, /before your first wellness activity or weekly check-in/i);
+  assert.match(feedbackSource, /before your first entry in the app/i);
+  assert.match(feedbackSource, /checking “I supported my .* this week” and selecting “Confirm check-in/i);
   assert.match(feedbackSource, /ownership transfers/i);
   assert.match(feedbackSource, /Report a problem/);
   assert.match(feedbackSource, /Share an idea/);
