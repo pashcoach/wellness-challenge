@@ -7,11 +7,13 @@ import { useProfile } from "@/lib/data";
 import { friendlyError } from "@/lib/errors";
 import { summarizeActivitiesByType } from "@/lib/admin-analytics";
 import Link from "next/link";
+import { excludeFromStandings } from "@/lib/organizer-exclusion";
 
 interface Row {
   profiles: {
     id: string; full_name: string; business_unit: string;
     located_at_crc: boolean; age_range: string; team_id: string | null;
+    exclude_from_standings?: boolean | null;
   }[];
   teams: { id: string; name: string }[];
   activities: { user_id: string; activity: string; minutes: number; points: number; entry_date: string; week: number }[];
@@ -69,11 +71,15 @@ export default function AdminPage() {
       supabase.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at").order("created_at", { ascending: false }),
       supabase.from("draw_results_view").select("*").order("drawn_at"),
     ]);
+    // Organizer accounts flagged out of standings are left out of every stat.
+    const allProfiles = (profiles.data ?? []) as Row["profiles"];
+    const counted = excludeFromStandings(allProfiles);
+    const countedIds = new Set(counted.map((p) => p.id));
     setData({
-      profiles: (profiles.data ?? []) as Row["profiles"],
+      profiles: counted,
       teams: (teams.data ?? []) as Row["teams"],
-      activities: (activities.data ?? []) as Row["activities"],
-      checkins: (checkins.data ?? []) as Row["checkins"],
+      activities: ((activities.data ?? []) as Row["activities"]).filter((a) => countedIds.has(a.user_id)),
+      checkins: ((checkins.data ?? []) as Row["checkins"]).filter((c) => countedIds.has(c.user_id)),
       surveys: (surveys.data ?? []) as Row["surveys"],
     });
     setDrawHistory((draws.data ?? []) as DrawRecord[]);
@@ -418,7 +424,7 @@ export default function AdminPage() {
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold">🎁 Prize draws</h2>
         <p className="mb-3 text-xs text-slate-500">
-          Draws enforce the rules: weekly = 2 winners with 140+ pts and 1+ logged wellness activity that week, no repeat winners; grand = 140+ pts and 1+ logged wellness activity in each week and excludes weekly winners; random team = activity-eligible teams, excluding the top team.
+          Draws enforce the rules: weekly = 2 winners with 140+ pts and 1+ logged wellness activity that week, no repeat winners; grand = 140+ pts and 1+ logged wellness activity in each week and excludes weekly winners; random team = activity-eligible teams, excluding the top team. Organizer accounts are excluded from all prize draws.
           <strong> Each draw runs once and is permanent.</strong> Review winners, then add them to the email sequence doc.
         </p>
 

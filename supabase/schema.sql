@@ -799,3 +799,8 @@ $$;
 
 revoke all on function public.join_team_by_code(text) from public, anon, authenticated;
 grant execute on function public.join_team_by_code(text) to authenticated;
+
+-- Organizer accounts (see migration-exclude-organizer-accounts.sql for the
+-- standings views and prize draw filters that use these flags).
+alter table public.profiles add column if not exists exclude_from_prizes boolean not null default false;
+alter table public.profiles add column if not exists exclude_from_standings boolean not null default false;

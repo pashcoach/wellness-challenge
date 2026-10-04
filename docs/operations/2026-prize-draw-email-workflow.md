@@ -111,3 +111,10 @@ If a draw or draft update fails:
 ## Pre-send requirement
 
 Before Patrick sends any bulk email, refresh and validate the participant BCC list. Participant addresses belong only in BCC. Creating or updating a draft does not authorize sending it.
+
+## Organizer accounts (added 2026-10-04)
+
+- `profiles.exclude_from_prizes` — skipped by weekly, grand, and random-team draws (a team qualifies only through activity by prize-eligible members).
+- `profiles.exclude_from_standings` — hidden from leaderboards, team averages, and admin stats.
+- "Patrick Ash" (participant): in standings, out of draws. "P Ash" (admin): out of both.
+- Migration: `supabase/migration-exclude-organizer-accounts.sql` (also fixes `user_week_points` to work under the draws' empty search_path; without it every draw errored).
