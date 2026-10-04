@@ -22,7 +22,6 @@ test("participant support opens as Need help with guided FAQs and categorized co
   assert.match(feedbackSource, /After your first entry, team changes are locked\. Leave a message below for the app team to assist with this correction\./);
   assert.doesNotMatch(feedbackSource, /Contact Patrick/);
   assert.match(feedbackSource, /choose Join a team.*pick a team from the list/i);
-  assert.match(feedbackSource, /No invite code is needed/);
   assert.doesNotMatch(feedbackSource, /Join with a team code/);
   assert.match(feedbackSource, /Report a problem/);
   assert.match(feedbackSource, /Share an idea/);

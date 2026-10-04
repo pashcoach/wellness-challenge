@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
+import TeamCodeJoin from "./TeamCodeJoin";
 
 
 interface TeamRow {
@@ -177,6 +178,15 @@ export default function SoloTeamCard({
 
       {canChange && mode === "join" && (
         <div className="space-y-2">
+          <TeamCodeJoin
+            disabled={busy}
+            onJoined={() => {
+              setToast("You joined your teammate's team!");
+              onJoined();
+            }}
+            onError={() => onJoined()}
+          />
+          <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Or pick a team from the list</p>
           {loadingTeams ? (
             <p className="text-sm text-slate-500">Loading teams…</p>
           ) : teamLoadError ? (

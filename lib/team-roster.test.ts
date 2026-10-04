@@ -34,5 +34,5 @@ test("dashboard invite instructions match the team-list joining flow", () => {
   const dashboard = readFileSync(resolve(process.cwd(), "components/Dashboard.tsx"), "utf8");
 
   assert.match(dashboard, /select Join a team, and choose/);
-  assert.doesNotMatch(dashboard, /enter code/);
+  assert.match(dashboard, /enter team code/);
 });

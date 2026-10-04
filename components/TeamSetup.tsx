@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import type { Profile, ProfileRefreshResult } from "@/lib/data";
 import { hasConfirmedTeamMembership } from "@/lib/team-management";
+import TeamCodeJoin from "./TeamCodeJoin";
 
 
 interface TeamRow {
@@ -178,6 +179,22 @@ export default function TeamSetup({
 
       {mode === "join" && (
         <div className="mt-4 space-y-3">
+          <TeamCodeJoin
+            disabled={busy}
+            onJoined={async () => {
+              const refreshed = await onRefresh();
+              if (!hasConfirmedTeamMembership(refreshed)) {
+                setError("Your team membership could not be confirmed. Please try again.");
+                return;
+              }
+              onDone();
+            }}
+            onError={async () => {
+              const refreshed = await onRefresh();
+              if (hasConfirmedTeamMembership(refreshed)) onDone();
+            }}
+          />
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Or pick a team from the list</p>
           {loadingTeams ? (
             <p className="text-sm text-slate-500">Loading teams…</p>
           ) : teamLoadError ? (

@@ -44,6 +44,10 @@ export function friendlyError(err: unknown): string {
 
   if (/Team changes are locked after your first wellness activity or weekly check-in/i.test(msg))
     return "Team changes are locked because you have already made your first entry in the app by logging a wellness activity or completing the Weekly Wellness section. Use Need help to leave a message for the app team to assist with this correction.";
+  if (/No team matches that code/i.test(msg))
+    return "No team matches that code. Check the code with your teammate and try again.";
+  if (/Leave your current team before joining another team/i.test(msg))
+    return "You're already on a team. Leave your current team before joining another one.";
   if (/cannot be deleted until you are its only remaining member/i.test(msg))
     return "You can delete this team only after all other members have left.";
   if (/Only the team creator can delete this team/i.test(msg))

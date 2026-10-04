@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     question: "How do teams work?",
-    answer: "If you are not on a team, choose Join a team and pick a team from the list. No invite code is needed. You can also create your own team and invite coworkers to pick it from the list. Team standings use average points per member, so larger teams do not have an automatic advantage.",
+    answer: "If you are not on a team, choose Join a team, then pick a team from the list or select Enter team code and paste the code a teammate sent you. You can find your own team code on the Your team card (tap it to copy) and send it to coworkers. You can also create your own team. Team standings use average points per member, so larger teams do not have an automatic advantage.",
   },
   {
     question: "How do I leave, switch, or delete a team?",
