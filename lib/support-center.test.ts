@@ -19,6 +19,9 @@ test("participant support opens as Need help with guided FAQs and categorized co
   assert.match(feedbackSource, /before your first entry in the app/i);
   assert.match(feedbackSource, /checking “I supported my .* this week” and selecting “Confirm check-in/i);
   assert.match(feedbackSource, /ownership transfers/i);
+  assert.match(feedbackSource, /choose Join a team.*pick a team from the list/i);
+  assert.match(feedbackSource, /No invite code is needed/);
+  assert.doesNotMatch(feedbackSource, /Join with a team code/);
   assert.match(feedbackSource, /Report a problem/);
   assert.match(feedbackSource, /Share an idea/);
   assert.match(feedbackSource, /category/);

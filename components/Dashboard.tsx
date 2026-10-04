@@ -380,8 +380,8 @@ export default function Dashboard({
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              📨 Invite coworkers: have them sign up, then either pick <strong>{team.name}</strong> from
-              the team list or enter code <strong>{team.join_code}</strong> when they join.
+              📨 Invite coworkers: have them sign up, select Join a team, and choose{" "}
+              <strong>{team.name}</strong> from the team list.
             </p>
             <TeamRoster profile={profile} />
             <TeamManagement

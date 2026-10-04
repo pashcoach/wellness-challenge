@@ -29,3 +29,10 @@ test("dashboard offers teammates a collapsible privacy-safe roster", () => {
   assert.match(component, /\(You\)/);
   assert.match(dashboard, /<TeamRoster profile=\{profile\}/);
 });
+
+test("dashboard invite instructions match the team-list joining flow", () => {
+  const dashboard = readFileSync(resolve(process.cwd(), "components/Dashboard.tsx"), "utf8");
+
+  assert.match(dashboard, /select Join a team, and choose/);
+  assert.doesNotMatch(dashboard, /enter code/);
+});
