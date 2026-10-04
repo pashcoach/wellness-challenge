@@ -112,7 +112,7 @@ export default function SoloTeamCard({
             Team changes are locked after your first entry in the app: either logging a wellness
             activity or completing the Weekly Wellness section.
           </p>
-          <p className="mt-1 text-xs">Contact Patrick if a correction is needed.</p>
+          <p className="mt-1 text-xs">Use Need help to leave a message for the app team to assist with this correction.</p>
         </div>
       )}
 

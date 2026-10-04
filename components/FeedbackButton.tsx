@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     question: "How do I leave, switch, or delete a team?",
-    answer: "Before your first entry in the app, open Your team and use Team options. An entry is made when you log a wellness activity or complete the Weekly Wellness section by checking “I supported my … this week” and selecting “Confirm check-in.” Choose Leave team to participate solo; you can then create or join another team. A team creator can delete the team only when they are its sole member. If the creator leaves while members remain, ownership transfers automatically. After your first entry, team changes are locked. Contact Patrick if a correction is needed.",
+    answer: "Before your first entry in the app, open Your team and use Team options. An entry is made when you log a wellness activity or complete the Weekly Wellness section by checking “I supported my … this week” and selecting “Confirm check-in.” Choose Leave team to participate solo; you can then create or join another team. A team creator can delete the team only when they are its sole member. If the creator leaves while members remain, ownership transfers automatically. After your first entry, team changes are locked. Leave a message below for the app team to assist with this correction.",
   },
   {
     question: "Why is activity logging locked?",

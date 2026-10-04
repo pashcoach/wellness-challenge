@@ -103,6 +103,8 @@ test("the team card exposes confirmed leave and creator-only delete controls", (
   assert.match(component, /You can change teams only before your first entry in the app/);
   assert.match(component, /checking “I supported my .* this week” and selecting “Confirm check-in/);
   assert.match(component, /After either action, leaving, switching, and deleting a team are locked/);
+  assert.match(component, /Use Need help to leave a message for the app team to assist with this correction/);
+  assert.doesNotMatch(component, /Contact Patrick/);
   assert.match(component, /Before that cutoff, you can delete this team only after all other members have left/);
   assert.match(data, /get_my_team_member_count/);
   assert.match(data, /teamLoadError/);
@@ -110,6 +112,8 @@ test("the team card exposes confirmed leave and creator-only delete controls", (
   assert.match(dashboard, /couldn&apos;t load your team/);
   assert.match(soloCard, /Team changes are locked after your first entry in the app/);
   assert.match(soloCard, /completing the Weekly Wellness section/);
+  assert.match(soloCard, /Use Need help to leave a message for the app team to assist with this correction/);
+  assert.doesNotMatch(soloCard, /Contact Patrick/);
   assert.match(data, /created_by: string \| null/);
   assert.match(data, /can_current_user_change_teams/);
   assert.match(component, /memberCountError/);

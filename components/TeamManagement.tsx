@@ -63,7 +63,7 @@ export default function TeamManagement({
         <p className="font-semibold text-slate-700">
           Team changes are locked because you have already made your first entry in the app.
         </p>
-        <p className="mt-1">Contact Patrick if a correction is needed.</p>
+        <p className="mt-1">Use Need help to leave a message for the app team to assist with this correction.</p>
       </div>
     );
   }
