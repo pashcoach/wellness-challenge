@@ -19,6 +19,13 @@ test("explains when team changes are locked", () => {
   );
 });
 
+test("explains the Week 1 cutoff for a locked solo participant", () => {
+  assert.equal(
+    friendlyError({ message: "Joining a team after your first entry is only available to solo participants during Week 1." }),
+    "After your first entry, a solo participant can join an existing team only through October 11. Use Need help to ask the app team for assistance."
+  );
+});
+
 test("explains why a creator cannot delete a team with other members", () => {
   assert.equal(
     friendlyError({ message: "This team cannot be deleted until you are its only remaining member." }),

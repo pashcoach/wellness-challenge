@@ -17,10 +17,12 @@ interface TeamRow {
 
 export default function SoloTeamCard({
   canChange,
+  canJoin,
   onJoined,
 }: {
   profile: Profile;
   canChange: boolean;
+  canJoin: boolean;
   onJoined: () => void;
 }) {
   const [mode, setMode] = useState<"idle" | "create" | "join">("idle");
@@ -106,7 +108,7 @@ export default function SoloTeamCard({
     <div>
       {toast && <Toast message="Done ✓" sub={toast} onDone={() => setToast(null)} />}
 
-      {!canChange && (
+      {!canJoin && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
           <p>You&apos;re participating solo.</p>
           <p className="mt-1 text-xs font-medium text-slate-700">
@@ -117,7 +119,7 @@ export default function SoloTeamCard({
         </div>
       )}
 
-      {canChange && mode === "idle" && (
+      {canJoin && mode === "idle" && (
         <div>
           <p className="text-sm text-slate-600">
             You&apos;re flying solo.{" "}
@@ -126,13 +128,20 @@ export default function SoloTeamCard({
               grabs!
             </span>
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setMode("create")}
-              className="rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-            >
-              Create a team
-            </button>
+          {!canChange && (
+            <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+              Solo participants can join an existing team through October 11, even after logging an entry.
+            </p>
+          )}
+          <div className={`mt-3 grid gap-2 ${canChange ? "grid-cols-2" : "grid-cols-1"}`}>
+            {canChange && (
+              <button
+                onClick={() => setMode("create")}
+                className="rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Create a team
+              </button>
+            )}
             <button
               onClick={() => {
                 setMode("join");
@@ -176,7 +185,7 @@ export default function SoloTeamCard({
         </form>
       )}
 
-      {canChange && mode === "join" && (
+      {canJoin && mode === "join" && (
         <div className="space-y-2">
           <TeamCodeJoin
             disabled={busy}
@@ -197,7 +206,7 @@ export default function SoloTeamCard({
               </button>
             </div>
           ) : teams.length === 0 ? (
-            <p className="text-sm text-slate-500">No teams yet — be the first to create one!</p>
+            <p className="text-sm text-slate-500">No teams are available to join yet.</p>
           ) : (
             <ul className="max-h-56 space-y-2 overflow-y-auto">
               {teams.map((t) => (

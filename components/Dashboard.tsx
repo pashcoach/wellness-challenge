@@ -48,6 +48,7 @@ export default function Dashboard({
     team,
     teamLoadError,
     canChangeTeam,
+    canJoinTeam,
     teamMemberCount,
     teamMemberCountError,
     loading,
@@ -399,6 +400,7 @@ export default function Dashboard({
           <SoloTeamCard
             profile={profile}
             canChange={canChangeTeam}
+            canJoin={canJoinTeam}
             onJoined={handleDataChanged}
           />
         )}
