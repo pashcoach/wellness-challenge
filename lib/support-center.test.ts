@@ -26,6 +26,9 @@ test("participant support opens as Need help with guided FAQs and categorized co
   assert.doesNotMatch(feedbackSource, /Contact Patrick/);
   assert.match(feedbackSource, /choose Join a team.*pick a team from the list/i);
   assert.doesNotMatch(feedbackSource, /Join with a team code/);
+  assert.match(feedbackSource, /How do I change or remove my username\?/);
+  assert.match(feedbackSource, /select Profile at the top of the app/i);
+  assert.match(feedbackSource, /first name and last initial/i);
   assert.match(feedbackSource, /Report a problem/);
   assert.match(feedbackSource, /Share an idea/);
   assert.match(feedbackSource, /category/);

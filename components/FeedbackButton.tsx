@@ -33,6 +33,10 @@ const FAQS = [
     answer: "The challenge runs October 5–30. Activity logging opens October 5, and future dates or dates outside the challenge cannot be submitted.",
   },
   {
+    question: "How do I change or remove my username?",
+    answer: "While signed in, select Profile at the top of the app. Enter a new username and select Save username, or clear the box and select Remove username. If you remove it, other participants will see your first name and last initial. Your points and all other challenge data stay the same.",
+  },
+  {
     question: "How do I reset my password?",
     answer: "Sign out, choose Forgot password on the sign-in screen, and follow the link sent to your email address.",
   },
