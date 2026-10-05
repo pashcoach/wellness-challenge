@@ -903,67 +903,15 @@ revoke all on function public.join_team(uuid) from public, anon, authenticated;
 grant execute on function public.can_current_user_join_team() to authenticated;
 grant execute on function public.join_team(uuid) to authenticated;
 
--- Activity accuracy audit: daily activity limit, private review log, and
--- administrator audit-queue RPCs. Safe to re-run.
+-- Activity accuracy audit: private review log and administrator audit-queue
+-- RPCs. Safe to re-run. High totals are reviewed but are not blocked because
+-- participants may enter several past days in one sitting.
 --
 -- Rules
---   * A participant can log at most 240 activity minutes per calendar day.
---   * Existing entries above the limit are kept; they can only be reduced.
 --   * Days above 240 minutes, or with one entry above 180 minutes, appear in
 --     the administrator audit queue until reviewed.
 --   * Administrators can approve a day or reduce an entry. Every decision is
 --     written to a private review log.
-
-create or replace function public.enforce_daily_activity_limit()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_limit constant integer := 240;
-  v_other integer;
-begin
-  if new.minutes is null or new.entry_date is null or new.user_id is null then
-    return new;
-  end if;
-
-  -- Same participant row lock as the first-entry/team-change trigger, so two
-  -- concurrent entries cannot both pass the daily check.
-  perform 1 from public.profiles p where p.id = new.user_id for update;
-
-  select coalesce(sum(a.minutes), 0)::integer
-  into v_other
-  from public.activity_entries a
-  where a.user_id = new.user_id
-    and a.entry_date = new.entry_date
-    and a.id is distinct from new.id;
-
-  if v_other + new.minutes <= v_limit then
-    return new;
-  end if;
-
-  -- Reducing an existing entry on the same day is always allowed, so entries
-  -- logged before the limit existed can still be corrected downward.
-  if tg_op = 'UPDATE'
-     and new.user_id = old.user_id
-     and new.entry_date = old.entry_date
-     and new.minutes <= old.minutes then
-    return new;
-  end if;
-
-  raise exception 'Daily activity limit reached: % minutes left for %.',
-    greatest(0, v_limit - v_other), new.entry_date
-    using errcode = '23514';
-end;
-$$;
-
-drop trigger if exists enforce_daily_activity_limit on public.activity_entries;
-create trigger enforce_daily_activity_limit
-before insert or update of minutes, entry_date, user_id on public.activity_entries
-for each row execute function public.enforce_daily_activity_limit();
-
-revoke all on function public.enforce_daily_activity_limit() from public, anon, authenticated;
 
 create table if not exists public.activity_audit_reviews (
   id uuid primary key default gen_random_uuid(),

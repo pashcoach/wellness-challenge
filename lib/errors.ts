@@ -46,12 +46,7 @@ export function friendlyError(err: unknown): string {
     return "Team changes are locked because you have already made your first entry in the app by logging a wellness activity or completing the Weekly Wellness section. Use Need help to leave a message for the app team to assist with this correction.";
   if (/Joining a team after your first entry is only available to solo participants during Week 1/i.test(msg))
     return "After your first entry, a solo participant can join an existing team only through October 11. Use Need help to ask the app team for assistance.";
-  if (/Daily activity limit/i.test(msg)) {
-    const left = /(\d+) minutes? left/i.exec(msg)?.[1];
-    return left && left !== "0"
-      ? `Daily activity limit: up to 240 minutes can be logged per day. You have ${left} minutes left for that date.`
-      : "Daily activity limit: up to 240 minutes can be logged per day, and that date is already at the limit. If this doesn't look right, use Need help to contact the app team.";
-  }
+
   if (/No team matches that code/i.test(msg))
     return "No team matches that code. Check the code with your teammate and try again.";
   if (/Leave your current team before joining another team/i.test(msg))

@@ -1,27 +1,21 @@
-/** Activity-time guidance, daily limit, and audit helpers.
- *  The database enforces the same daily limit; keep these values in sync with
- *  supabase/migration-activity-audit.sql. */
+/** Activity-time guidance and audit helpers. */
 
-export const DAILY_ACTIVITY_LIMIT_MINUTES = 240;
+export const DAILY_ACTIVITY_REVIEW_MINUTES = 240;
 export const LONG_ENTRY_FLAG_MINUTES = 180;
 
 export const ACTIVITY_LOGGING_HINT =
-  "Log only intentional wellness activity time, like a workout, walk, stretching, or meditation. Don't log a work shift or all-day steps. Daily limit: 240 minutes.";
+  "Log only intentional wellness activity time, like a workout, walk, stretching, or meditation—not a work shift or all-day steps. You can enter several days at once; choose the date it happened for each activity.";
 
 export const ACTIVITY_TIME_FAQ = {
   question: "What counts as activity time?",
   answer:
     "Log only the minutes you spend on an intentional wellness activity, such as a workout, walk, run, bike ride, stretching, yoga, or meditation. Please don't log a full work shift, time on your feet at work, or all-day step counts.\n\n" +
-    "You can log up to 240 minutes (4 hours) per day. To keep the challenge fair for everyone, the app team reviews unusually large entries and may contact you privately to confirm or correct one.",
+    "You may enter several days—or your whole week—in a single sitting. Please make a separate entry for each activity and select the actual date it happened rather than combining the week's minutes under one day. To keep the challenge fair for everyone, the app team reviews unusually large entries and may contact you privately to confirm or correct one.",
 } as const;
-
-export function remainingDailyMinutes(loggedMinutes: number): number {
-  return Math.max(0, DAILY_ACTIVITY_LIMIT_MINUTES - loggedMinutes);
-}
 
 export function auditReasons(day: { dayMinutes: number; maxEntryMinutes: number }): string[] {
   const reasons: string[] = [];
-  if (day.dayMinutes > DAILY_ACTIVITY_LIMIT_MINUTES) reasons.push("More than 240 minutes in one day");
+  if (day.dayMinutes > DAILY_ACTIVITY_REVIEW_MINUTES) reasons.push("More than 240 minutes in one day");
   if (day.maxEntryMinutes > LONG_ENTRY_FLAG_MINUTES) reasons.push("Single entry over 180 minutes");
   return reasons;
 }
@@ -61,9 +55,7 @@ export function auditRequestEmail(input: { firstName: string; entryDate: string;
     "",
     "If the entry is accurate, just reply to this email and let us know what the activity was and roughly how long it lasted.",
     "",
-    "Going forward, activity time is intentional wellness activity (workouts, walks, stretching, meditation, and similar), up to 240 minutes per day.",
-    "",
-    "If we don't hear back and the entry isn't updated within 3 days, we'll adjust that day to the 240-minute daily limit.",
+    "Activity time is intentional wellness activity (workouts, walks, stretching, meditation, and similar). You can enter several days at once; just make a separate entry with the actual date for each activity.",
     "",
     "Thanks for helping keep the challenge fair for everyone!",
     "",

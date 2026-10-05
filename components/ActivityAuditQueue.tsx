@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/errors";
 import {
-  DAILY_ACTIVITY_LIMIT_MINUTES,
+  DAILY_ACTIVITY_REVIEW_MINUTES,
   auditReasons,
   auditRequestEmail,
   validateAdjustedMinutes,
@@ -241,7 +241,7 @@ export default function ActivityAuditQueue() {
         <div>
           <h2 className="font-bold">🔍 Activity audit queue</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Days over {DAILY_ACTIVITY_LIMIT_MINUTES} minutes or with a single entry over 180 minutes. Approve, reduce an entry, or contact the participant privately. Email participant opens a draft in your mail app; nothing is sent automatically.
+            Days over {DAILY_ACTIVITY_REVIEW_MINUTES} minutes or with a single entry over 180 minutes are flagged for review, not blocked. Participants may enter several past days in one sitting when each entry uses the date it occurred. Approve, reduce an entry, or contact the participant privately. Email participant opens a draft in your mail app; nothing is sent automatically.
           </p>
         </div>
         <div className="flex items-center gap-2">

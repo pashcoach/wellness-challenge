@@ -4,45 +4,41 @@ import test from "node:test";
 import {
   ACTIVITY_LOGGING_HINT,
   ACTIVITY_TIME_FAQ,
-  DAILY_ACTIVITY_LIMIT_MINUTES,
+  DAILY_ACTIVITY_REVIEW_MINUTES,
   LONG_ENTRY_FLAG_MINUTES,
   auditReasons,
   auditRequestEmail,
-  remainingDailyMinutes,
   validateAdjustedMinutes,
 } from "./activity-audit";
-import { friendlyError } from "./errors";
 
 const feedbackSource = readFileSync("components/FeedbackButton.tsx", "utf8");
 const activityFormSource = readFileSync("components/ActivityForm.tsx", "utf8");
 const entryLogSource = readFileSync("components/EntryLog.tsx", "utf8");
 const errorsSource = readFileSync("lib/errors.ts", "utf8");
 
-test("activity-time guidance names intentional activity and the daily limit", () => {
-  assert.equal(DAILY_ACTIVITY_LIMIT_MINUTES, 240);
+test("activity-time guidance allows batch entry but requires the actual activity date", () => {
+  assert.equal(DAILY_ACTIVITY_REVIEW_MINUTES, 240);
   assert.equal(LONG_ENTRY_FLAG_MINUTES, 180);
   assert.match(ACTIVITY_LOGGING_HINT, /intentional/i);
   assert.match(ACTIVITY_LOGGING_HINT, /work shift/i);
-  assert.match(ACTIVITY_LOGGING_HINT, /240 minutes/);
+  assert.match(ACTIVITY_LOGGING_HINT, /several days at once/i);
+  assert.match(ACTIVITY_LOGGING_HINT, /date it happened/i);
+  assert.doesNotMatch(ACTIVITY_LOGGING_HINT, /daily limit/i);
   assert.equal(ACTIVITY_TIME_FAQ.question, "What counts as activity time?");
   assert.match(ACTIVITY_TIME_FAQ.answer, /workout/i);
   assert.match(ACTIVITY_TIME_FAQ.answer, /all-day step/i);
-  assert.match(ACTIVITY_TIME_FAQ.answer, /240 minutes \(4 hours\) per day/);
+  assert.match(ACTIVITY_TIME_FAQ.answer, /week.*single sitting/i);
+  assert.match(ACTIVITY_TIME_FAQ.answer, /actual date/i);
+  assert.doesNotMatch(ACTIVITY_TIME_FAQ.answer, /240 minutes \(4 hours\) per day/);
   assert.match(ACTIVITY_TIME_FAQ.answer, /contact you privately/i);
 });
 
-test("the FAQ and both activity forms show the guidance", () => {
+test("the FAQ and activity form show guidance without an input cap", () => {
   assert.match(feedbackSource, /ACTIVITY_TIME_FAQ/);
   assert.match(activityFormSource, /ACTIVITY_LOGGING_HINT/);
-  assert.match(activityFormSource, /max=\{DAILY_ACTIVITY_LIMIT_MINUTES\}/);
-  assert.match(entryLogSource, /max=\{DAILY_ACTIVITY_LIMIT_MINUTES\}/);
-  assert.match(errorsSource, /Daily activity limit/);
-});
-
-test("remaining daily minutes never goes below zero", () => {
-  assert.equal(remainingDailyMinutes(0), 240);
-  assert.equal(remainingDailyMinutes(200), 40);
-  assert.equal(remainingDailyMinutes(650), 0);
+  assert.doesNotMatch(activityFormSource, /max=\{DAILY_ACTIVITY_LIMIT_MINUTES\}/);
+  assert.doesNotMatch(entryLogSource, /max=\{DAILY_ACTIVITY_LIMIT_MINUTES\}/);
+  assert.doesNotMatch(errorsSource, /Daily activity limit/);
 });
 
 test("audit reasons flag a high daily total and a long single entry", () => {
@@ -70,7 +66,7 @@ test("the participant request is friendly, private, and does not accuse", () => 
   assert.equal(email.subject, "FCL Wellness Challenge: quick check on your October 5 activity");
   assert.match(email.body, /^Hi Sam,/);
   assert.match(email.body, /630 minutes/);
-  assert.match(email.body, /240 minutes/);
+  assert.doesNotMatch(email.body, /daily limit|240 minutes|within 3 days/i);
   assert.match(email.body, /reply/i);
   assert.match(email.body, /Endurance Journey/);
   assert.match(email.body, /How to edit or delete an entry:/);
@@ -82,30 +78,18 @@ test("the participant request is friendly, private, and does not accuse", () => 
   assert.doesNotMatch(email.body, /cheat|fraud|suspicious/i);
 });
 
-test("daily-limit database errors become clear participant messages", () => {
-  assert.equal(
-    friendlyError({ code: "23514", message: "Daily activity limit reached: 40 minutes left for 2026-10-05." }),
-    "Daily activity limit: up to 240 minutes can be logged per day. You have 40 minutes left for that date.",
-  );
-  assert.match(
-    friendlyError({ code: "23514", message: "Daily activity limit reached: 0 minutes left for 2026-10-05." }),
-    /already at the limit/,
-  );
-});
-
 const migrationSource = readFileSync("supabase/migration-activity-audit.sql", "utf8");
+const removeLimitMigrationSource = readFileSync("supabase/migration-remove-daily-activity-limit.sql", "utf8");
 const schemaSource = readFileSync("supabase/schema.sql", "utf8");
 const adminSource = readFileSync("app/admin/page.tsx", "utf8");
 const auditQueueSource = readFileSync("components/ActivityAuditQueue.tsx", "utf8");
 
-test("the database enforces the daily limit with a participant row lock", () => {
-  for (const source of [migrationSource, schemaSource]) {
-    assert.match(source, /create or replace function public\.enforce_daily_activity_limit\(\)/);
-    assert.match(source, /perform 1 from public\.profiles p where p\.id = new\.user_id for update;/);
-    assert.match(source, /v_limit constant integer := 240;/);
-    assert.match(source, /before insert or update of minutes, entry_date, user_id on public\.activity_entries/);
-    assert.match(source, /Daily activity limit reached: % minutes left for %\./);
-  }
+test("the daily limit is removed while audit review remains", () => {
+  assert.match(removeLimitMigrationSource, /drop trigger if exists enforce_daily_activity_limit on public\.activity_entries/);
+  assert.match(removeLimitMigrationSource, /drop function if exists public\.enforce_daily_activity_limit\(\)/);
+  assert.doesNotMatch(schemaSource, /create trigger enforce_daily_activity_limit/);
+  assert.doesNotMatch(schemaSource, /Daily activity limit reached/);
+  assert.match(schemaSource, /where d\.day_minutes > 240 or d\.max_entry_minutes > 180/);
 });
 
 test("audit reviews are private and changed only through admin RPCs", () => {
