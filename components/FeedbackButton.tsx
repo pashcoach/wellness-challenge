@@ -6,6 +6,7 @@ import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 import type { SupportReply } from "@/lib/support-replies";
+import { ACTIVITY_TIME_FAQ } from "@/lib/activity-audit";
 
 const FAQS = [
   {
@@ -16,6 +17,7 @@ const FAQS = [
     question: "How are points calculated?",
     answer: "Activity earns 10 points per 10 minutes, so one activity minute equals one point. Each weekly wellness check-in earns 20 points.",
   },
+  ACTIVITY_TIME_FAQ,
   {
     question: "How do teams work?",
     answer: "If you are not on a team, choose Join a team, then pick a team from the list or select Enter team code and paste the code a teammate sent you. You can find your own team code on the Your team card (tap it to copy) and send it to coworkers. You can also create your own team. Team standings use average points per member, so larger teams do not have an automatic advantage.",

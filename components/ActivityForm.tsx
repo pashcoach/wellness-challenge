@@ -7,6 +7,7 @@ import { friendlyError } from "@/lib/errors";
 import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 import { latestLoggableDate } from "@/lib/week-access";
+import { ACTIVITY_LOGGING_HINT, DAILY_ACTIVITY_LIMIT_MINUTES } from "@/lib/activity-audit";
 
 const QUICK_ACTIVITIES = [
   { emoji: "🚶", label: "Walking" },
@@ -190,6 +191,7 @@ export default function ActivityForm({
             <input
               type="number"
               min={1}
+              max={DAILY_ACTIVITY_LIMIT_MINUTES}
               required
               value={minutes}
               onChange={(e) => setMinutes(e.target.value)}
@@ -230,6 +232,7 @@ export default function ActivityForm({
             )}
           </div>
         </div>
+        <p className="text-xs text-slate-500">{ACTIVITY_LOGGING_HINT}</p>
         {pts > 0 && (
           <p
             key={pts}

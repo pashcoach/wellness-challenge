@@ -6,6 +6,7 @@ import { ACTIVITIES, CHALLENGE, getChallengeWeek, pillarForWeek, pointsForMinute
 import { friendlyError } from "@/lib/errors";
 import type { ActivityEntry, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
+import { DAILY_ACTIVITY_LIMIT_MINUTES } from "@/lib/activity-audit";
 
 interface Props {
   activities: ActivityEntry[];
@@ -281,6 +282,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
                 <input
                   type="number"
                   min={1}
+                  max={DAILY_ACTIVITY_LIMIT_MINUTES}
                   value={editMinutes}
                   onChange={(e) => setEditMinutes(e.target.value)}
                   className={input}

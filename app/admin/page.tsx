@@ -7,6 +7,7 @@ import { useProfile } from "@/lib/data";
 import { friendlyError } from "@/lib/errors";
 import { summarizeActivitiesByType } from "@/lib/admin-analytics";
 import Link from "next/link";
+import ActivityAuditQueue from "@/components/ActivityAuditQueue";
 import { excludeFromStandings } from "@/lib/organizer-exclusion";
 import { suggestSupportReply, validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
 
@@ -407,6 +408,8 @@ export default function AdminPage() {
           </ol>
         </div>
       </div>
+
+      <ActivityAuditQueue />
 
       {/* Support inbox */}
       <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
