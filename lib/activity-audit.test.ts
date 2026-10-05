@@ -73,6 +73,11 @@ test("the participant request is friendly, private, and does not accuse", () => 
   assert.match(email.body, /240 minutes/);
   assert.match(email.body, /reply/i);
   assert.match(email.body, /Endurance Journey/);
+  assert.match(email.body, /How to edit or delete an entry:/);
+  assert.match(email.body, /My entry log/);
+  assert.match(email.body, /pencil icon \(✏️\).*"Save changes"/);
+  assert.match(email.body, /trash icon \(🗑️\).*"Delete"/);
+  assert.match(email.body, /https:\/\/fclwellnesschallengeapp\.ca/);
   assert.match(email.body, /FCL/);
   assert.doesNotMatch(email.body, /cheat|fraud|suspicious/i);
 });
