@@ -8,7 +8,7 @@ import { friendlyError } from "@/lib/errors";
 import { summarizeActivitiesByType } from "@/lib/admin-analytics";
 import Link from "next/link";
 import { excludeFromStandings } from "@/lib/organizer-exclusion";
-import { validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
+import { suggestSupportReply, validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
 
 interface Row {
   profiles: {
@@ -98,7 +98,7 @@ export default function AdminPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   const stats = useMemo(() => {
@@ -259,9 +259,9 @@ export default function AdminPage() {
   }
 
   /** Sends a typed app-team reply (emailed to the participant and saved to the request). */
-  async function sendSupportReply(id: string, markResolved: boolean) {
+  async function sendSupportReply(id: string, messageText: string, markResolved: boolean) {
     if (!supabase) return;
-    const checked = validateSupportReply(replyDrafts[id] ?? "");
+    const checked = validateSupportReply(messageText);
     if (!checked.ok) {
       setReplyErrors((current) => ({ ...current, [id]: checked.error }));
       return;
@@ -436,6 +436,15 @@ export default function AdminPage() {
                 problem: "Problem",
                 idea: "Idea",
               }[message.category];
+              const hasReplies = replies.some((reply) => reply.request_id === message.id);
+              const suggestedDraft = message.status !== "resolved" && !hasReplies
+                ? suggestSupportReply({
+                    fullName: participant?.full_name,
+                    category: message.category,
+                    feedback: message.feedback,
+                  })
+                : "";
+              const replyValue = replyDrafts[message.id] ?? suggestedDraft;
               return (
                 <article key={message.id} className="rounded-xl border border-slate-200 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -486,11 +495,13 @@ export default function AdminPage() {
                       Reply to participant
                     </label>
                     <p id={`reply-hint-${message.id}`} className="mt-0.5 text-xs text-slate-500">
-                      Your reply is emailed to the participant and shown in their My support requests.
+                      {suggestedDraft
+                        ? "Suggested draft — review and edit before sending. Nothing is sent until you select a send button."
+                        : "Your reply is emailed to the participant and shown in their My support requests."}
                     </p>
                     <textarea
                       id={`reply-${message.id}`}
-                      value={replyDrafts[message.id] ?? ""}
+                      value={replyValue}
                       onChange={(event) => {
                         const value = event.target.value;
                         setReplyDrafts((current) => ({ ...current, [message.id]: value }));
@@ -515,8 +526,8 @@ export default function AdminPage() {
                     <div className="mt-2 flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => void sendSupportReply(message.id, false)}
-                        disabled={replyBusy === message.id || !(replyDrafts[message.id] ?? "").trim()}
+                        onClick={() => void sendSupportReply(message.id, replyValue, false)}
+                        disabled={replyBusy === message.id || !replyValue.trim()}
                         className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                       >
                         {replyBusy === message.id ? "Sending…" : "Send reply"}
@@ -524,8 +535,8 @@ export default function AdminPage() {
                       {message.status !== "resolved" && (
                         <button
                           type="button"
-                          onClick={() => void sendSupportReply(message.id, true)}
-                          disabled={replyBusy === message.id || !(replyDrafts[message.id] ?? "").trim()}
+                          onClick={() => void sendSupportReply(message.id, replyValue, true)}
+                          disabled={replyBusy === message.id || !replyValue.trim()}
                           className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
                         >
                           Send reply &amp; resolve

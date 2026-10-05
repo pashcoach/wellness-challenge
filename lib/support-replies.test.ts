@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { validateSupportReply, SUPPORT_REPLY_MAX } from "./support-replies";
+import { suggestSupportReply, validateSupportReply, SUPPORT_REPLY_MAX } from "./support-replies";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 const migration = read("supabase/migration-support-replies.sql");
@@ -15,6 +15,24 @@ test("reply text is trimmed and length-checked", () => {
   assert.equal(validateSupportReply("   ").ok, false);
   assert.equal(validateSupportReply("x".repeat(SUPPORT_REPLY_MAX + 1)).ok, false);
   assert.equal(validateSupportReply("x".repeat(SUPPORT_REPLY_MAX)).ok, true);
+});
+
+test("new support requests receive a personalized editable draft", () => {
+  const draft = suggestSupportReply({
+    fullName: "Amaka Uzoalu",
+    category: "help",
+    feedback: "I joined the wrong team and need to switch.",
+  });
+  assert.match(draft, /^Hi Amaka,/);
+  assert.match(draft, /reviewing your team membership request/i);
+  assert.match(draft, /FCL Wellness Challenge App Team/);
+  assert.doesNotMatch(draft, /has been (changed|completed|resolved)/i);
+});
+
+test("suggested drafts adapt safely to the ticket category", () => {
+  assert.match(suggestSupportReply({ fullName: "Pat Doe", category: "problem", feedback: "The page is stuck." }), /looking into the issue/i);
+  assert.match(suggestSupportReply({ fullName: "Pat Doe", category: "idea", feedback: "Add a chart." }), /Thank you for the suggestion/i);
+  assert.match(suggestSupportReply({ fullName: "Pat Doe", category: "feedback", feedback: "Great challenge." }), /sharing your feedback/i);
 });
 
 test("replies are stored privately and only written by the server", () => {
@@ -53,6 +71,9 @@ test("admin inbox has an accessible reply box with send and send-and-resolve", (
   assert.match(admin, /Send reply &amp; resolve/);
   assert.match(admin, /from\("support_replies"\)/);
   assert.match(admin, /Reply emailed/);
+  assert.match(admin, /suggestSupportReply/);
+  assert.match(admin, /Suggested draft — review and edit before sending/);
+  assert.match(admin, /Nothing is sent until you select a send button/);
 });
 
 test("participants see app-team replies under My support requests", () => {
