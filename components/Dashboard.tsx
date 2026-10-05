@@ -122,8 +122,8 @@ export default function Dashboard({
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16">
       {/* Header */}
-      <header className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-3">
+      <header className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
           <BrandMark size={36} />
           <div>
             <h1 className="text-lg font-bold text-emerald-800">{CHALLENGE.name}</h1>
@@ -140,7 +140,7 @@ export default function Dashboard({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <RefreshAppButton />
           <ProfileSettings profile={profile} onSaved={handleDataChanged} />
           {profile.is_admin && (

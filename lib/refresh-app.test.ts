@@ -11,4 +11,6 @@ test("dashboard provides a clearly labeled in-app refresh control", () => {
   assert.match(button, />Refresh</);
   assert.match(button, /aria-label="Refresh app"/);
   assert.match(dashboard, /<RefreshAppButton \/>/);
+  assert.match(dashboard, /<header className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between"/);
+  assert.match(dashboard, /className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end"/);
 });
