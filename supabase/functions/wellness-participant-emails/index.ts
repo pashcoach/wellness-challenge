@@ -25,11 +25,20 @@ Deno.serve(async (request) => {
     const { data: profileRows, error: profileError } = await client.from("profiles").select("id");
     if (profileError) throw profileError;
     const profileIds = new Set((profileRows ?? []).map((row) => row.id));
+    const { data: routes, error: routeError } = await client
+      .from("campaign_email_routing").select("user_id,email_override,suppress");
+    if (routeError) throw routeError;
+    const routing = new Map((routes ?? []).map((route) => [route.user_id, route]));
     const { data: userData, error: userError } = await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (userError) throw userError;
     const emails = userData.users
-      .filter((user) => profileIds.has(user.id) && Boolean(user.email))
-      .map((user) => user.email!.trim().toLowerCase())
+      .filter((user) => profileIds.has(user.id))
+      .map((user) => {
+        const route = routing.get(user.id);
+        if (route?.suppress) return null;
+        return (route?.email_override ?? user.email)?.trim().toLowerCase() ?? null;
+      })
+      .filter((email): email is string => Boolean(email))
       .filter((email, index, all) => all.indexOf(email) === index)
       .sort();
     return Response.json({ count: emails.length, emails }, { headers: { "Cache-Control": "no-store" } });
