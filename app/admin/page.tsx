@@ -10,6 +10,9 @@ import Link from "next/link";
 import ActivityAuditQueue from "@/components/ActivityAuditQueue";
 import { excludeFromStandings } from "@/lib/organizer-exclusion";
 import { suggestSupportReply, validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
+import { fetchAllRows } from "@/lib/admin-pagination";
+
+const ADMIN_LOAD_ERROR = "Admin data could not be fully loaded; stats and CSV are unavailable.";
 
 interface Row {
   profiles: {
@@ -65,37 +68,71 @@ export default function AdminPage() {
   const [replyErrors, setReplyErrors] = useState<Record<string, string>>({});
   const [replySent, setReplySent] = useState<string | null>(null);
   const [supportError, setSupportError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const isAdmin = profile?.is_admin === true;
 
   const load = useCallback(async () => {
     if (!supabase || !isAdmin) return;
-    const [profiles, teams, activities, checkins, surveys, draws] = await Promise.all([
-      supabase.from("profiles").select("*"),
-      supabase.from("teams").select("id, name"),
-      supabase.from("activity_entries").select("user_id, activity, minutes, points, entry_date, week"),
-      supabase.from("wellness_checkins").select("user_id, week, pillar, points, comment"),
-      supabase.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at").order("created_at", { ascending: false }),
-      supabase.from("draw_results_view").select("*").order("drawn_at"),
-    ]);
-    const replyResult = await supabase
-      .from("support_replies")
-      .select("id, request_id, body, created_at, email_sent_at")
-      .order("created_at");
-    setReplies((replyResult.data ?? []) as SupportReply[]);
-    // Organizer accounts flagged out of standings are left out of every stat.
-    const allProfiles = (profiles.data ?? []) as Row["profiles"];
-    const counted = excludeFromStandings(allProfiles);
-    const countedIds = new Set(counted.map((p) => p.id));
-    setData({
-      profiles: counted,
-      teams: (teams.data ?? []) as Row["teams"],
-      activities: ((activities.data ?? []) as Row["activities"]).filter((a) => countedIds.has(a.user_id)),
-      checkins: ((checkins.data ?? []) as Row["checkins"]).filter((c) => countedIds.has(c.user_id)),
-      surveys: (surveys.data ?? []) as Row["surveys"],
-    });
-    setDrawHistory((draws.data ?? []) as DrawRecord[]);
-    setLoading(false);
+    const client = supabase;
+    setLoading(true);
+    setLoadError(null);
+
+    try {
+      const [profiles, teams, activities, checkins, surveys, draws, replyResult] = await Promise.all([
+        client.from("profiles").select("*"),
+        client.from("teams").select("id, name"),
+        fetchAllRows<Row["activities"][number]>((from, to) =>
+          client
+            .from("activity_entries")
+            .select("user_id, activity, minutes, points, entry_date, week")
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        fetchAllRows<Row["checkins"][number]>((from, to) =>
+          client
+            .from("wellness_checkins")
+            .select("user_id, week, pillar, points, comment")
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        client.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at").order("created_at", { ascending: false }),
+        client.from("draw_results_view").select("*").order("drawn_at"),
+        client
+          .from("support_replies")
+          .select("id, request_id, body, created_at, email_sent_at")
+          .order("created_at"),
+      ]);
+
+      if ([profiles, teams, activities, checkins, surveys, draws, replyResult].some((result) => result.error)) {
+        setData(null);
+        setReplies([]);
+        setDrawHistory([]);
+        setLoadError(ADMIN_LOAD_ERROR);
+        return;
+      }
+
+      setReplies((replyResult.data ?? []) as SupportReply[]);
+      // Organizer accounts flagged out of standings are left out of every stat.
+      const allProfiles = (profiles.data ?? []) as Row["profiles"];
+      const counted = excludeFromStandings(allProfiles);
+      const countedIds = new Set(counted.map((p) => p.id));
+      setData({
+        profiles: counted,
+        teams: (teams.data ?? []) as Row["teams"],
+        activities: ((activities.data ?? []) as Row["activities"]).filter((a) => countedIds.has(a.user_id)),
+        checkins: ((checkins.data ?? []) as Row["checkins"]).filter((c) => countedIds.has(c.user_id)),
+        surveys: (surveys.data ?? []) as Row["surveys"],
+      });
+      setDrawHistory((draws.data ?? []) as DrawRecord[]);
+    } catch {
+      setData(null);
+      setReplies([]);
+      setDrawHistory([]);
+      setLoadError(ADMIN_LOAD_ERROR);
+    } finally {
+      setLoading(false);
+    }
   }, [isAdmin]);
 
   useEffect(() => {
@@ -195,6 +232,33 @@ export default function AdminPage() {
           <p className="text-lg font-semibold">Admins only</p>
           <p className="mt-1 text-sm text-slate-500">Your account doesn&apos;t have admin access.</p>
           <Link href="/" className="mt-4 inline-block text-sm font-medium text-emerald-700 underline">← Back to the app</Link>
+        </div>
+      </main>
+    );
+  }
+  if (loadError) {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-8">
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900 shadow-sm">
+          <h1 className="font-bold">Admin data unavailable</h1>
+          <p className="mt-2 text-sm">{loadError}</p>
+          <p className="mt-1 text-sm">No partial totals are shown or exported.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
+            >
+              Retry loading
+            </button>
+            <button
+              type="button"
+              disabled
+              className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-500"
+            >
+              CSV export unavailable
+            </button>
+          </div>
         </div>
       </main>
     );
