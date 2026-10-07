@@ -10,6 +10,7 @@ import Link from "next/link";
 import ActivityAuditQueue from "@/components/ActivityAuditQueue";
 import { excludeFromStandings } from "@/lib/organizer-exclusion";
 import { suggestSupportReply, validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
+import { supportMessagesForView, type SupportInboxView } from "@/lib/support-inbox";
 
 interface Row {
   profiles: {
@@ -65,6 +66,7 @@ export default function AdminPage() {
   const [replyErrors, setReplyErrors] = useState<Record<string, string>>({});
   const [replySent, setReplySent] = useState<string | null>(null);
   const [supportError, setSupportError] = useState<string | null>(null);
+  const [supportView, setSupportView] = useState<SupportInboxView>("active");
 
   const isAdmin = profile?.is_admin === true;
 
@@ -201,6 +203,10 @@ export default function AdminPage() {
   }
   if (loading || !data || !stats) return <main className="p-8 text-slate-500">Loading stats…</main>;
 
+  const activeSupportCount = data.surveys.filter((message) => message.status !== "resolved").length;
+  const archivedSupportCount = data.surveys.filter((message) => message.status === "resolved").length;
+  const visibleSupportMessages = supportMessagesForView(data.surveys, supportView);
+
   function downloadCsv() {
     if (!data || !stats) return;
     const rows: (string | number | boolean | null)[][] = [
@@ -238,12 +244,10 @@ export default function AdminPage() {
     setSupportBusy(id);
     setSupportError(null);
     const changedAt = new Date().toISOString();
-    const result = status === "resolved"
-      ? await supabase.functions.invoke("resolve-support-request", { body: { requestId: id } })
-      : await supabase
-          .from("survey_responses")
-          .update({ status, updated_at: changedAt })
-          .eq("id", id);
+    const result = await supabase
+      .from("survey_responses")
+      .update({ status, updated_at: changedAt })
+      .eq("id", id);
     setSupportBusy(null);
     if (result.error) {
       setSupportError(friendlyError(result.error));
@@ -254,7 +258,33 @@ export default function AdminPage() {
       surveys: current.surveys.map((message) => message.id === id ? {
         ...message,
         status,
-        resolution_email_sent_at: status === "resolved" ? changedAt : message.resolution_email_sent_at,
+        resolution_email_sent_at: message.resolution_email_sent_at,
+      } : message),
+    } : current);
+  }
+
+  async function resolveSupportRequest(id: string, sendEmail: boolean) {
+    if (!supabase) return;
+    setSupportBusy(id);
+    setSupportError(null);
+    const changedAt = new Date().toISOString();
+    const result = sendEmail
+      ? await supabase.functions.invoke("resolve-support-request", { body: { requestId: id } })
+      : await supabase
+          .from("survey_responses")
+          .update({ status: "resolved", updated_at: changedAt })
+          .eq("id", id);
+    setSupportBusy(null);
+    if (result.error) {
+      setSupportError(friendlyError(result.error));
+      return;
+    }
+    setData((current) => current ? {
+      ...current,
+      surveys: current.surveys.map((message) => message.id === id ? {
+        ...message,
+        status: "resolved",
+        resolution_email_sent_at: sendEmail ? changedAt : message.resolution_email_sent_at,
       } : message),
     } : current);
   }
@@ -417,6 +447,9 @@ export default function AdminPage() {
           <div>
             <h2 className="font-bold">💬 Support inbox</h2>
             <p className="mt-1 text-xs text-slate-500">Private participant questions, problem reports, and ideas.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Resolved messages move to Archived. Resolve &amp; archive sends no email; use Resolve &amp; send email only when the participant still needs a resolution notice.
+            </p>
           </div>
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
             {data.surveys.filter((message) => message.status === "new").length} new
@@ -427,11 +460,32 @@ export default function AdminPage() {
           <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{supportError}</p>
         )}
 
-        {data.surveys.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-500">No support messages yet.</p>
+        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Support inbox view">
+          <button
+            type="button"
+            aria-pressed={supportView === "active"}
+            onClick={() => setSupportView("active")}
+            className={`rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-300 ${supportView === "active" ? "bg-emerald-700 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+          >
+            Active ({activeSupportCount})
+          </button>
+          <button
+            type="button"
+            aria-pressed={supportView === "archived"}
+            onClick={() => setSupportView("archived")}
+            className={`rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-300 ${supportView === "archived" ? "bg-emerald-700 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+          >
+            Archived ({archivedSupportCount})
+          </button>
+        </div>
+
+        {visibleSupportMessages.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-500">
+            {supportView === "active" ? "No active support messages." : "No archived support messages."}
+          </p>
         ) : (
           <div className="mt-4 space-y-3">
-            {data.surveys.map((message) => {
+            {visibleSupportMessages.map((message) => {
               const participant = data.profiles.find((person) => person.id === message.user_id);
               const categoryLabel = {
                 feedback: "Feedback",
@@ -462,21 +516,43 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{message.feedback}</p>
-                  <label className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-600">
-                    Status
-                    <select
-                      value={message.status}
-                      disabled={supportBusy === message.id}
-                      onChange={(event) => updateSupportStatus(message.id, event.target.value as SupportStatus)}
-                      className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
-                    >
-                      <option value="new">New</option>
-                      <option value="in_progress">In progress</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
-                  </label>
-                  {message.resolution_email_sent_at && (
-                    <p className="mt-2 text-xs font-medium text-emerald-700">✓ Resolution email sent</p>
+                  {message.status !== "resolved" ? (
+                    <>
+                      <label className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-600">
+                        Status
+                        <select
+                          value={message.status}
+                          disabled={supportBusy === message.id}
+                          onChange={(event) => updateSupportStatus(message.id, event.target.value as SupportStatus)}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 disabled:opacity-50"
+                        >
+                          <option value="new">New</option>
+                          <option value="in_progress">In progress</option>
+                        </select>
+                      </label>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void resolveSupportRequest(message.id, false)}
+                          disabled={supportBusy === message.id}
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:opacity-50"
+                        >
+                          Resolve &amp; archive
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void resolveSupportRequest(message.id, true)}
+                          disabled={supportBusy === message.id}
+                          className="rounded-lg border border-emerald-600 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:opacity-50"
+                        >
+                          Resolve &amp; send email
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-xs font-medium text-slate-600">
+                      {message.resolution_email_sent_at ? "✓ Archived · resolution email sent" : "✓ Archived · no resolution email sent"}
+                    </p>
                   )}
 
                   {replies.filter((r) => r.request_id === message.id).length > 0 && (
@@ -493,7 +569,7 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  <div className="mt-3 border-t border-slate-100 pt-3">
+                  {message.status !== "resolved" && <div className="mt-3 border-t border-slate-100 pt-3">
                     <label htmlFor={`reply-${message.id}`} className="block text-xs font-semibold text-slate-700">
                       Reply to participant
                     </label>
@@ -535,18 +611,16 @@ export default function AdminPage() {
                       >
                         {replyBusy === message.id ? "Sending…" : "Send reply"}
                       </button>
-                      {message.status !== "resolved" && (
-                        <button
-                          type="button"
-                          onClick={() => void sendSupportReply(message.id, replyValue, true)}
-                          disabled={replyBusy === message.id || !replyValue.trim()}
-                          className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
-                        >
-                          Send reply &amp; resolve
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => void sendSupportReply(message.id, replyValue, true)}
+                        disabled={replyBusy === message.id || !replyValue.trim()}
+                        className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                      >
+                        Send reply &amp; resolve
+                      </button>
                     </div>
-                  </div>
+                  </div>}
                 </article>
               );
             })}
