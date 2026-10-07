@@ -28,7 +28,7 @@ const FAQS = [
       "Leaving, switching, or deleting a team is only possible before your first entry in the app (logging a wellness activity or confirming a Weekly Wellness check-in). Solo participants may create or join a team anytime during Week 1, through October 11, but you cannot leave or switch teams after your first entry.\n\n" +
       "To leave or switch teams: Open Your team, select Team options, and tap Leave team. You will then be participating solo. To switch, choose Join a team (or Create a team) from your solo team card.\n\n" +
       "To delete a team: Only the person who created the team can delete it, and only after every other member has left. If the creator leaves while others are still on the team, another member automatically becomes the team creator and the team continues.\n\n" +
-      "After your first entry: You cannot leave or switch teams. If you are still solo, you may create a new team or join one existing team through October 11. If you still need another team change, leave a message below and the app team will help.",
+      "After your first entry: You cannot leave or switch teams. If you are still solo, you may create a new team or join one existing team through October 11. Teams must have at least two members by the end of October 11; one-person teams will be removed and their member will continue solo without losing activities or points. If you still need another team change, leave a message below and the app team will help.",
   },
   {
     question: "Why is activity logging locked?",

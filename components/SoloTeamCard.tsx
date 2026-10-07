@@ -131,9 +131,10 @@ export default function SoloTeamCard({
             </span>
           </p>
           {!canChange && (canJoin || canCreate) && (
-            <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-              Solo participants can create or join a team through October 11, even after logging an entry.
-            </p>
+            <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+              <p>Solo participants can create or join a team through October 11, even after logging an entry.</p>
+              <p className="mt-1">Team setup closes October 11. New teams need at least two members by the deadline or they will be removed.</p>
+            </div>
           )}
           <div className={`mt-3 grid gap-2 ${canCreate && canJoin ? "grid-cols-2" : "grid-cols-1"}`}>
             {canCreate && (
@@ -159,6 +160,9 @@ export default function SoloTeamCard({
 
       {canCreate && mode === "create" && (
         <form onSubmit={createTeam} className="space-y-3">
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+            Invite at least one teammate after creating your team. Every team must have at least two members by the deadline on October 11.
+          </p>
           <input
             required
             value={teamName}

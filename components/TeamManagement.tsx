@@ -24,6 +24,12 @@ export default function TeamManagement({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isCreator = team.created_by === profile.id;
+  const minimumWarning = memberCount === 1 ? (
+    <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+      <p className="font-bold">Your team currently has one member.</p>
+      <p className="mt-1">Invite at least one teammate by October 11. If the team still has only one member after the deadline, it will be removed and you will continue as a solo participant. Your activities and points will stay in place.</p>
+    </div>
+  ) : null;
 
   async function leaveTeam() {
     if (!supabase) return;
@@ -59,18 +65,22 @@ export default function TeamManagement({
 
   if (!canChange) {
     return (
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-        <p className="font-semibold text-slate-700">
-          Team changes are locked because you have already made your first entry in the app.
-        </p>
-        <p className="mt-1">Use Need help to leave a message for the app team to assist with this correction.</p>
-      </div>
+      <>
+        {minimumWarning}
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+          <p className="font-semibold text-slate-700">
+            Team changes are locked because you have already made your first entry in the app.
+          </p>
+          <p className="mt-1">Use Need help to leave a message for the app team to assist with this correction.</p>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="mt-4 border-t border-slate-100 pt-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Team options</p>
+      {minimumWarning}
       <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
         You can change teams only before your first entry in the app. An entry is made when you either
         log a wellness activity or complete the Weekly Wellness section by checking “I supported my … this week” and selecting “Confirm check-in.” After either action, leaving, switching, and deleting a team are locked.
