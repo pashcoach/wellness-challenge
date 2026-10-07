@@ -49,6 +49,7 @@ export default function Dashboard({
     teamLoadError,
     canChangeTeam,
     canJoinTeam,
+    canCreateTeam,
     teamMemberCount,
     teamMemberCountError,
     loading,
@@ -401,6 +402,7 @@ export default function Dashboard({
             profile={profile}
             canChange={canChangeTeam}
             canJoin={canJoinTeam}
+            canCreate={canCreateTeam}
             onJoined={handleDataChanged}
           />
         )}

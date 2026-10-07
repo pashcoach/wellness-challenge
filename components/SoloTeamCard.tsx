@@ -18,11 +18,13 @@ interface TeamRow {
 export default function SoloTeamCard({
   canChange,
   canJoin,
+  canCreate,
   onJoined,
 }: {
   profile: Profile;
   canChange: boolean;
   canJoin: boolean;
+  canCreate: boolean;
   onJoined: () => void;
 }) {
   const [mode, setMode] = useState<"idle" | "create" | "join">("idle");
@@ -108,7 +110,7 @@ export default function SoloTeamCard({
     <div>
       {toast && <Toast message="Done ✓" sub={toast} onDone={() => setToast(null)} />}
 
-      {!canJoin && (
+      {!canJoin && !canCreate && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
           <p>You&apos;re participating solo.</p>
           <p className="mt-1 text-xs font-medium text-slate-700">
@@ -119,7 +121,7 @@ export default function SoloTeamCard({
         </div>
       )}
 
-      {canJoin && mode === "idle" && (
+      {(canJoin || canCreate) && mode === "idle" && (
         <div>
           <p className="text-sm text-slate-600">
             You&apos;re flying solo.{" "}
@@ -128,13 +130,13 @@ export default function SoloTeamCard({
               grabs!
             </span>
           </p>
-          {!canChange && (
+          {!canChange && (canJoin || canCreate) && (
             <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-              Solo participants can join an existing team through October 11, even after logging an entry.
+              Solo participants can create or join a team through October 11, even after logging an entry.
             </p>
           )}
-          <div className={`mt-3 grid gap-2 ${canChange ? "grid-cols-2" : "grid-cols-1"}`}>
-            {canChange && (
+          <div className={`mt-3 grid gap-2 ${canCreate && canJoin ? "grid-cols-2" : "grid-cols-1"}`}>
+            {canCreate && (
               <button
                 onClick={() => setMode("create")}
                 className="rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
@@ -155,7 +157,7 @@ export default function SoloTeamCard({
         </div>
       )}
 
-      {canChange && mode === "create" && (
+      {canCreate && mode === "create" && (
         <form onSubmit={createTeam} className="space-y-3">
           <input
             required

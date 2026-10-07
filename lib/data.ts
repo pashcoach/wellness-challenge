@@ -123,6 +123,7 @@ export function useMyData(profile: Profile | null) {
   const [teamLoadError, setTeamLoadError] = useState(false);
   const [canChangeTeam, setCanChangeTeam] = useState(false);
   const [canJoinTeam, setCanJoinTeam] = useState(false);
+  const [canCreateTeam, setCanCreateTeam] = useState(false);
   const [teamMemberCount, setTeamMemberCount] = useState<number | null>(null);
   const [teamMemberCountError, setTeamMemberCountError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -135,22 +136,25 @@ export function useMyData(profile: Profile | null) {
       setTeamLoadError(false);
       setCanChangeTeam(false);
       setCanJoinTeam(false);
+      setCanCreateTeam(false);
       setTeamMemberCount(null);
       setTeamMemberCountError(false);
       setLoading(false);
       return;
     }
-    const [a, c, eligibility, joinEligibility, memberCount] = await Promise.all([
+    const [a, c, eligibility, joinEligibility, createEligibility, memberCount] = await Promise.all([
       supabase.from("activity_entries").select("*").eq("user_id", profile.id).order("entry_date", { ascending: false }),
       supabase.from("wellness_checkins").select("*").eq("user_id", profile.id).order("week"),
       supabase.rpc("can_current_user_change_teams"),
       supabase.rpc("can_current_user_join_team"),
+      supabase.rpc("can_current_user_create_team"),
       supabase.rpc("get_my_team_member_count"),
     ]);
     setActivities((a.data as ActivityEntry[]) ?? []);
     setCheckins((c.data as WellnessCheckin[]) ?? []);
     setCanChangeTeam(eligibility.error ? false : eligibility.data === true);
     setCanJoinTeam(joinEligibility.error ? false : joinEligibility.data === true);
+    setCanCreateTeam(createEligibility.error ? false : createEligibility.data === true);
     setTeamMemberCount(memberCount.error ? null : Number(memberCount.data));
     setTeamMemberCountError(Boolean(memberCount.error));
     if (profile.team_id) {
@@ -182,6 +186,7 @@ export function useMyData(profile: Profile | null) {
     teamLoadError,
     canChangeTeam,
     canJoinTeam,
+    canCreateTeam,
     teamMemberCount,
     teamMemberCountError,
     loading,

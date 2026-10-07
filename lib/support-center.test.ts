@@ -16,8 +16,8 @@ test("participant support opens as Need help with guided FAQs and categorized co
   assert.match(feedbackSource, /Quick answers/);
   assert.match(feedbackSource, /How are points calculated\?/);
   assert.match(feedbackSource, /How do I leave, switch, or delete a team\?/);
-  assert.match(feedbackSource, /Leaving, switching, creating, or deleting a team is only possible before your first entry in the app/);
-  assert.match(feedbackSource, /Solo participants may join an existing team anytime during Week 1, through October 11/);
+  assert.match(feedbackSource, /Leaving, switching, or deleting a team is only possible before your first entry in the app/);
+  assert.match(feedbackSource, /Solo participants may create or join a team anytime during Week 1, through October 11/);
   assert.match(feedbackSource, /To leave or switch teams: Open Your team, select Team options, and tap Leave team\./);
   assert.match(feedbackSource, /To delete a team: Only the person who created the team can delete it, and only after every other member has left\./);
   assert.match(feedbackSource, /If the creator leaves while others are still on the team, another member automatically becomes the team creator and the team continues\./);
