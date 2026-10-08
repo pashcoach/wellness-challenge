@@ -42,7 +42,8 @@ test("replies are stored privately and only written by the server", () => {
   assert.match(migration, /alter table public\.support_replies enable row level security/);
   assert.match(migration, /create policy "support_replies_read_own_or_admin"/);
   assert.match(migration, /r\.user_id = auth\.uid\(\)/);
-  assert.match(migration, /public\.current_user_is_admin\(\)/);
+  assert.match(migration, /public\.is_current_user_admin\(\)/);
+  assert.doesNotMatch(migration, /public\.current_user_is_admin\(\)/);
   assert.match(migration, /revoke all on table public\.support_replies from public, anon, authenticated/);
   assert.match(migration, /grant select on table public\.support_replies to authenticated/);
   assert.match(migration, /has_table_privilege\('authenticated', 'public\.support_replies', 'INSERT'\)/);

@@ -50,8 +50,8 @@ create policy "survey_update_admin"
 on public.survey_responses
 for update
 to authenticated
-using (public.current_user_is_admin())
-with check (public.current_user_is_admin());
+using (public.is_current_user_admin())
+with check (public.is_current_user_admin());
 
 revoke update on table public.survey_responses from authenticated;
 grant update (status, updated_at) on table public.survey_responses to authenticated;

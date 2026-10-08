@@ -11,6 +11,11 @@ import ActivityAuditQueue from "@/components/ActivityAuditQueue";
 import { excludeFromStandings } from "@/lib/organizer-exclusion";
 import { suggestSupportReply, validateSupportReply, SUPPORT_REPLY_MAX, type SupportReply } from "@/lib/support-replies";
 import { supportMessagesForView, type SupportInboxView } from "@/lib/support-inbox";
+import {
+  categoryLabel,
+  summarizeInsightRows,
+  type SupportInsightRow,
+} from "@/lib/support-insights";
 
 interface Row {
   profiles: {
@@ -67,6 +72,8 @@ export default function AdminPage() {
   const [replySent, setReplySent] = useState<string | null>(null);
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportView, setSupportView] = useState<SupportInboxView>("active");
+  const [supportInsights, setSupportInsights] = useState<SupportInsightRow[]>([]);
+  const [supportInsightsError, setSupportInsightsError] = useState<string | null>(null);
 
   const isAdmin = profile?.is_admin === true;
 
@@ -85,6 +92,13 @@ export default function AdminPage() {
       .select("id, request_id, body, created_at, email_sent_at")
       .order("created_at");
     setReplies((replyResult.data ?? []) as SupportReply[]);
+    const insightResult = await supabase.rpc("support_improvement_report");
+    if (insightResult.error) {
+      setSupportInsightsError(friendlyError(insightResult.error));
+    } else {
+      setSupportInsights((insightResult.data ?? []) as SupportInsightRow[]);
+      setSupportInsightsError(null);
+    }
     // Organizer accounts flagged out of standings are left out of every stat.
     const allProfiles = (profiles.data ?? []) as Row["profiles"];
     const counted = excludeFromStandings(allProfiles);
@@ -206,6 +220,7 @@ export default function AdminPage() {
   const activeSupportCount = data.surveys.filter((message) => message.status !== "resolved").length;
   const archivedSupportCount = data.surveys.filter((message) => message.status === "resolved").length;
   const visibleSupportMessages = supportMessagesForView(data.surveys, supportView);
+  const insightSummary = summarizeInsightRows(supportInsights);
 
   function downloadCsv() {
     if (!data || !stats) return;
@@ -440,6 +455,90 @@ export default function AdminPage() {
       </div>
 
       <ActivityAuditQueue />
+
+      {/* Privacy-minimized support improvement report */}
+      <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-bold">📈 Private improvement report</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
+              Combines in-app support requests with relevant Gmail conversations. Matching reports are counted once. Names, email addresses, message text, and account identifiers are not shown here.
+            </p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+            Admin only
+          </span>
+        </div>
+
+        {supportInsightsError ? (
+          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            The improvement report could not be loaded: {supportInsightsError}
+          </p>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              {[
+                { label: "Unique issues", value: insightSummary.totalIssues },
+                { label: "Still open", value: insightSummary.openIssues },
+                { label: "In-app only", value: insightSummary.sources.dashboard },
+                { label: "Gmail only", value: insightSummary.sources.gmail },
+                { label: "Seen in both", value: insightSummary.sources.both },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                  <p className="text-xl font-bold text-emerald-800">{item.value}</p>
+                  <p className="mt-1 text-xs text-slate-600">{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {insightSummary.themes.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-500">No support insights have been recorded yet.</p>
+            ) : (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[520px] text-left text-sm">
+                  <caption className="sr-only">Support themes ordered by improvement priority</caption>
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                      <th scope="col" className="px-2 py-2 font-semibold">Improvement theme</th>
+                      <th scope="col" className="px-2 py-2 text-right font-semibold">Issues</th>
+                      <th scope="col" className="px-2 py-2 text-right font-semibold">Open</th>
+                      <th scope="col" className="px-2 py-2 text-right font-semibold">Source occurrences</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insightSummary.themes.map((theme) => (
+                      <tr key={theme.category} className="border-b border-slate-100 last:border-0">
+                        <th scope="row" className="px-2 py-2 font-medium text-slate-800">{theme.label}</th>
+                        <td className="px-2 py-2 text-right text-slate-700">{theme.issues}</td>
+                        <td className="px-2 py-2 text-right text-slate-700">{theme.open}</td>
+                        <td className="px-2 py-2 text-right text-slate-700">{theme.occurrences}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {supportInsights.length > 0 && (
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent anonymized issues</h3>
+                <ul className="mt-2 space-y-2">
+                  {supportInsights.slice(0, 8).map((issue) => (
+                    <li key={issue.issue_key} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                      <span className="font-medium text-slate-800">{categoryLabel(issue.category)}</span>
+                      <span className="text-xs text-slate-500">
+                        {issue.source === "both" ? "In-app + Gmail" : issue.source === "gmail" ? "Gmail" : "In-app"}
+                        {" · "}{issue.status === "open" ? "Open" : issue.status === "in_progress" ? "In progress" : issue.status === "responded" ? "Responded" : "Resolved"}
+                        {" · "}{new Date(issue.last_seen).toLocaleDateString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {/* Support inbox */}
       <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">

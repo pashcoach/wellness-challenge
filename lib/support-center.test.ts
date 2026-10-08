@@ -67,7 +67,7 @@ test("support storage permits multiple requests and limits triage updates to adm
   assert.match(migrationSource, /drop constraint if exists survey_responses_user_id_key/i);
   assert.match(migrationSource, /category/i);
   assert.match(migrationSource, /status/i);
-  assert.match(migrationSource, /is_admin/i);
+  assert.match(migrationSource, /public\.is_current_user_admin\(\)/);
   assert.match(migrationSource, /grant update \(status, updated_at\)/i);
   assert.doesNotMatch(schemaSource, /user_id uuid unique references auth\.users/i);
   assert.match(schemaSource, /category text not null default 'feedback'/i);

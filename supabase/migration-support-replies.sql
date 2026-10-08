@@ -25,7 +25,7 @@ on public.support_replies
 for select
 to authenticated
 using (
-  public.current_user_is_admin()
+  public.is_current_user_admin()
   or exists (
     select 1 from public.survey_responses r
     where r.id = support_replies.request_id
