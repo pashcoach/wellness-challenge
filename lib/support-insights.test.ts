@@ -85,3 +85,15 @@ test("migration keeps source data private and returns no participant identifiers
   assert.doesNotMatch(reportSignature, /participant_id/i);
   assert.doesNotMatch(reportSignature, /sender_email/i);
 });
+
+test("dashboard classifier covers registration, accidental joins, and unknown-teammate questions (rules v2)", () => {
+  const sql = readFileSync(new URL("../supabase/migration-support-insights.sql", import.meta.url), "utf8");
+  const classifier = sql.slice(sql.indexOf("create or replace function private.classify_support_insight"), sql.indexOf("create or replace function public.import_support_insight_events"));
+  for (const phrase of ["accidentally joined", "removed from (this|the|my|our) team", "remove (him|her|them) from", "know who", "had joined", "sign up", "registration"]) {
+    assert.ok(classifier.includes(phrase), `missing phrase ${phrase}`);
+  }
+  assert.match(classifier, /then 'team_roster_question'/);
+  assert.match(classifier, /then 'registration'/);
+  assert.ok(classifier.indexOf("'team_roster_question'") < classifier.indexOf("then 'team_change'"), "roster questions must win over removal requests");
+  assert.match(sql, /v_row->>'matched_rule', 2, v_first_seen/);
+});

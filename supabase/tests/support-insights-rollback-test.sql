@@ -82,6 +82,20 @@ begin
     raise exception 'admin report returned no rows';
   end if;
 
+  if (select string_agg(c.category || ':' || c.topic, ',' order by x.n)
+      from (values
+        (1, 'can you still sign up for the challenge?'),
+        (2, 'I accidentally joined a team. Can I please be removed from this team?'),
+        (3, 'We do not know who this person is. Can you remove him from our team?'),
+        (4, 'Please disregard my request, we didn''t know he had joined.'),
+        (5, 'I forgot password'),
+        (6, 'How do I log activity minutes?')
+      ) as x(n, txt)
+      cross join lateral private.classify_support_insight(x.txt, 'help') c)
+     <> 'account_access:registration,team_membership:team_change,team_membership:team_roster_question,team_membership:team_roster_question,account_access:password_reset,activity_points:points_question' then
+    raise exception 'support classifier v2 rules returned unexpected themes';
+  end if;
+
   raise exception 'TESTRESULT PASS support insights import, privacy, admin report, and rollback';
 end;
 $$;

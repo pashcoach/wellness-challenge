@@ -95,11 +95,13 @@ as $$
     case
       when value ~ '(password reset|reset code|forgot password|reset email)' then 'account_access'
       when value ~ '(permission|do not have permission|can''t check in|cant check in|cannot check in)' then 'wellness_checkin'
-      when value ~ '(wrong team|switch team|leave team|remove me from|remove himself|remove herself)' then 'team_membership'
+      when value ~ '(don''t know who|do not know who|nor do we know who|didn''t know who|didn''t know (he|she|they) had joined|had joined our team|unknown member|unknown teammate)' then 'team_membership'
+      when value ~ '(wrong team|switch team|leave team|remove me from|remove himself|remove herself|accidentally joined|removed from (this|the|my|our) team|remove (him|her|them) from)' then 'team_membership'
       when value ~ '(remove my|delete my|wrong entry|mistake entry|adjust my points|incorrect activity)' then 'activity_points'
       when value ~ '(team code|join my team|join the team|invite teammate|invite a teammate|teammate join)' then 'team_membership'
       when value ~ '(check in|check-in|weekly wellness)' then 'wellness_checkin'
       when value ~ '(points|activity log|log activity|logged activity|minutes)' then 'activity_points'
+      when value ~ '(sign up|signup|sign-up|registration|register for|still join the (wellness )?challenge)' then 'account_access'
       when value ~ '(sign in|signin|log in|login|account access)' then 'account_access'
       when value ~ '(not receiving|didn''t receive|did not receive|email never arrived)' then 'email_delivery'
       when value ~ '(error|not working|doesn''t work|does not work|blank screen|stuck|crash)' then 'bug_performance'
@@ -112,11 +114,13 @@ as $$
     case
       when value ~ '(password reset|reset code|forgot password|reset email)' then 'password_reset'
       when value ~ '(permission|do not have permission|can''t check in|cant check in|cannot check in)' then 'checkin_permission'
-      when value ~ '(wrong team|switch team|leave team|remove me from|remove himself|remove herself)' then 'team_change'
+      when value ~ '(don''t know who|do not know who|nor do we know who|didn''t know who|didn''t know (he|she|they) had joined|had joined our team|unknown member|unknown teammate)' then 'team_roster_question'
+      when value ~ '(wrong team|switch team|leave team|remove me from|remove himself|remove herself|accidentally joined|removed from (this|the|my|our) team|remove (him|her|them) from)' then 'team_change'
       when value ~ '(remove my|delete my|wrong entry|mistake entry|adjust my points|incorrect activity)' then 'activity_correction'
       when value ~ '(team code|join my team|join the team|invite teammate|invite a teammate|teammate join)' then 'team_join'
       when value ~ '(check in|check-in|weekly wellness)' then 'checkin_help'
       when value ~ '(points|activity log|log activity|logged activity|minutes)' then 'points_question'
+      when value ~ '(sign up|signup|sign-up|registration|register for|still join the (wellness )?challenge)' then 'registration'
       when value ~ '(sign in|signin|log in|login|account access)' then 'sign_in'
       when value ~ '(not receiving|didn''t receive|did not receive|email never arrived)' then 'email_delivery'
       when value ~ '(error|not working|doesn''t work|does not work|blank screen|stuck|crash)' then 'app_error'
@@ -230,7 +234,7 @@ begin
       message_count, linked_dashboard_request_id, updated_at
     ) values (
       'gmail', v_row->>'source_id', v_account_id, v_row->>'category',
-      v_row->>'topic', v_row->>'matched_rule', 1, v_first_seen, v_last_seen,
+      v_row->>'topic', v_row->>'matched_rule', 2, v_first_seen, v_last_seen,
       v_row->>'status', coalesce((v_row->>'response_sent')::boolean, false),
       (v_row->>'message_count')::integer, v_linked_request, now()
     )
