@@ -2,6 +2,8 @@
 
 This runbook documents the scheduled production prize draws for the 2026 FCL Wellness Challenge and the controlled insertion of verified results into Gmail drafts.
 
+The related [Key Challenge Wrap-up Tasks](2026-challenge-wrap-up-checklist.md) tracks results verification, prize fulfillment, reporting, security, and billing cleanup. Its initial review reminder is October 31 at 9:00 a.m. CST; it does not replace or rerun the draw jobs below.
+
 ## Scope and ownership
 
 - Production app: <https://fclwellnesschallengeapp.ca>
