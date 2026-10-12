@@ -24,6 +24,10 @@ Each weekly draw selects two participants who:
 - logged at least one wellness activity in that week; and
 - have not already won an individual prize draw.
 
+The two weekly winners must be from **different departments** (business units). The database draws the first winner at random, then draws the second at random from eligible participants in other departments. Department names are compared after normalization, so `People & Culture` and `People and Culture` are the same department. If every eligible participant is in one department, the draw fails without recording a run.
+
+Week 1 was drawn before this rule existed and produced two winners from one department. On 2026-10-12, Patrick approved keeping one winner (chosen at random) and replacing the other with an eligible participant from another department, using `public.admin_correct_weekly_draw_department_conflict(1)`. The private ledger `private.prize_draw_department_corrections` records the change using IDs only.
+
 ### Grand prize
 
 The grand-prize draw selects two participants who:

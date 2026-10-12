@@ -731,7 +731,7 @@ export default function AdminPage() {
       <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold">🎁 Prize draws</h2>
         <p className="mb-3 text-xs text-slate-500">
-          Draws enforce the rules: weekly = 2 winners with 140+ pts and 1+ logged wellness activity that week, no repeat winners; grand = 140+ pts and 1+ logged wellness activity in each week and excludes weekly winners; random team = activity-eligible teams, excluding the top team. Organizer accounts are excluded from all prize draws.
+          Draws enforce the rules: weekly = 2 winners from different departments with 140+ pts and 1+ logged wellness activity that week, no repeat winners; grand = 140+ pts and 1+ logged wellness activity in each week and excludes weekly winners; random team = activity-eligible teams, excluding the top team. Organizer accounts are excluded from all prize draws.
           <strong> Each draw runs once and is permanent.</strong> Review winners, then add them to the email sequence doc.
         </p>
 
@@ -743,7 +743,7 @@ export default function AdminPage() {
               <button
                 key={w}
                 disabled={done || drawBusy}
-                onClick={() => setConfirmDraw({ key: `week${w}`, label: `Week ${w} draw (2 winners, 140+ pts and a logged wellness activity)` })}
+                onClick={() => setConfirmDraw({ key: `week${w}`, label: `Week ${w} draw (2 winners from different departments, 140+ pts and a logged wellness activity)` })}
                 className={`rounded-lg border px-3 py-2 text-sm font-medium ${
                   done
                     ? "border-slate-200 bg-slate-100 text-slate-400"
