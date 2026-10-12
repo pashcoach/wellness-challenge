@@ -109,6 +109,16 @@ Recipient refresh: each unsent draft's BCC is reset to the current routed partic
 
 All twelve jobs are one-shot jobs. Their success or failure notices are delivered back to the Wellness Challenge Changes Discord thread.
 
+### Daily welcome email for new registrants (added 2026-10-12)
+
+| Job | Job ID | Runs |
+|---|---|---|
+| FCL daily welcome email (new registrants) | `1de2d62389b5` | Daily, 8:35 a.m. CST, Oct 12–30 |
+
+Patrick approved the "👋 Welcome to the FCL Wellness Challenge!" text and authorized it to go out once per day to new registrants. The approved email stays in Gmail Drafts as a template with no recipients; edit its wording there, but don't send the template itself. Each run sends a fresh copy To Patrick, with BCC limited to registered participants who never received the Week 1 email or a welcome email. A private ledger stops repeats. The job sends nothing if the template is missing, is no longer an unsent draft, or its subject changes; if more than 25 people qualify; or if a previous send is unconfirmed. Discord reports show counts only.
+
+Never delete a "leftover" Gmail draft without first checking that its labels show `DRAFT` and not `SENT`. A draft Patrick has already sent can still answer under its old draft ID, and deleting it permanently erases the Sent copy.
+
 ## Failure response
 
 If a draw or draft update fails:
