@@ -100,8 +100,14 @@ Participant email addresses and credentials must never be written to GitHub, Obs
 | Add Week 3 winners to email draft | `b876f1e7211b` | Oct 26, 6:35 a.m. CST |
 | FCL final prize draws | `077585898d61` | Oct 31, 6:30 a.m. CST |
 | Add all winners to final email draft | `4dd65d4c649b` | Oct 31, 6:35 a.m. CST |
+| Refresh Email #5 recipients | `bb746165b510` | Oct 19, 6:15 a.m. CST |
+| Refresh Email #6 recipients | `6a24303193a9` | Oct 26, 6:15 a.m. CST |
+| Refresh Email #7 recipients | `b88087f244eb` | Oct 30, 6:15 a.m. CST |
+| Refresh Email #8 recipients | `03c3c92c0d6f` | Oct 31, 6:15 a.m. CST |
 
-All eight jobs are one-shot jobs. Their success or failure notices are delivered back to the Wellness Challenge Changes Discord thread.
+Recipient refresh: each unsent draft's BCC is reset to the current routed participant list (the `wellness-participant-emails` function, which applies address corrections and suppressions) at 6:15 a.m. on its send day, before the draw and winner jobs. The refresh never sends, fails closed if more than five current recipients would be removed, and reports counts only. Patrick still reviews and sends each email.
+
+All twelve jobs are one-shot jobs. Their success or failure notices are delivered back to the Wellness Challenge Changes Discord thread.
 
 ## Failure response
 
