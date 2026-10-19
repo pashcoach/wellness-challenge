@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/data";
 import { friendlyError } from "@/lib/errors";
+import { fetchAllRows } from "@/lib/paginated-query";
 import { summarizeActivitiesByType } from "@/lib/admin-analytics";
 import Link from "next/link";
 import ActivityAuditQueue from "@/components/ActivityAuditQueue";
@@ -59,6 +60,7 @@ export default function AdminPage() {
   const { profile, loading: profileLoading } = useProfile();
   const [data, setData] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [drawResult, setDrawResult] = useState<string | null>(null);
   const [drawError, setDrawError] = useState<string | null>(null);
   const [drawHistory, setDrawHistory] = useState<DrawRecord[]>([]);
@@ -79,39 +81,47 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     if (!supabase || !isAdmin) return;
-    const [profiles, teams, activities, checkins, surveys, draws] = await Promise.all([
-      supabase.from("profiles").select("*"),
-      supabase.from("teams").select("id, name"),
-      supabase.from("activity_entries").select("user_id, activity, minutes, points, entry_date, week"),
-      supabase.from("wellness_checkins").select("user_id, week, pillar, points, comment"),
-      supabase.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at").order("created_at", { ascending: false }),
-      supabase.from("draw_results_view").select("*").order("drawn_at"),
-    ]);
-    const replyResult = await supabase
-      .from("support_replies")
-      .select("id, request_id, body, created_at, email_sent_at")
-      .order("created_at");
-    setReplies((replyResult.data ?? []) as SupportReply[]);
-    const insightResult = await supabase.rpc("support_improvement_report");
-    if (insightResult.error) {
-      setSupportInsightsError(friendlyError(insightResult.error));
-    } else {
-      setSupportInsights((insightResult.data ?? []) as SupportInsightRow[]);
-      setSupportInsightsError(null);
+    const db = supabase;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [profiles, teams, activities, checkins, surveys, draws, replyRows] = await Promise.all([
+        fetchAllRows((from, to) => db.from("profiles").select("*", { count: "exact" }).order("id").range(from, to)),
+        fetchAllRows((from, to) => db.from("teams").select("id, name", { count: "exact" }).order("id").range(from, to)),
+        fetchAllRows((from, to) => db.from("activity_entries").select("user_id, activity, minutes, points, entry_date, week", { count: "exact" }).order("id").range(from, to)),
+        fetchAllRows((from, to) => db.from("wellness_checkins").select("user_id, week, pillar, points, comment", { count: "exact" }).order("id").range(from, to)),
+        fetchAllRows((from, to) => db.from("survey_responses").select("id, user_id, feedback, category, status, created_at, resolution_email_sent_at", { count: "exact" }).order("created_at", { ascending: false }).order("id").range(from, to)),
+        fetchAllRows((from, to) => db.from("draw_results_view").select("*", { count: "exact" }).order("drawn_at").order("id").range(from, to)),
+        fetchAllRows((from, to) => db.from("support_replies").select("id, request_id, body, created_at, email_sent_at", { count: "exact" }).order("created_at").order("id").range(from, to)),
+      ]);
+      // This privacy-minimized RPC intentionally returns at most 500 issues.
+      const insightResult = await db.rpc("support_improvement_report");
+      if (insightResult.error) {
+        setSupportInsightsError(friendlyError(insightResult.error));
+      } else {
+        setSupportInsights((insightResult.data ?? []) as SupportInsightRow[]);
+        setSupportInsightsError(null);
+      }
+      // Publish only complete results; never turn failed pages into zero totals.
+      // Organizer accounts flagged out of standings are left out of every stat.
+      const allProfiles = profiles as Row["profiles"];
+      const counted = excludeFromStandings(allProfiles);
+      const countedIds = new Set(counted.map((p) => p.id));
+      setData({
+        profiles: counted,
+        teams: teams as Row["teams"],
+        activities: (activities as Row["activities"]).filter((a) => countedIds.has(a.user_id)),
+        checkins: (checkins as Row["checkins"]).filter((c) => countedIds.has(c.user_id)),
+        surveys: surveys as Row["surveys"],
+      });
+      setReplies(replyRows as SupportReply[]);
+      setDrawHistory(draws as DrawRecord[]);
+    } catch (error) {
+      setData(null);
+      setLoadError(friendlyError(error));
+    } finally {
+      setLoading(false);
     }
-    // Organizer accounts flagged out of standings are left out of every stat.
-    const allProfiles = (profiles.data ?? []) as Row["profiles"];
-    const counted = excludeFromStandings(allProfiles);
-    const countedIds = new Set(counted.map((p) => p.id));
-    setData({
-      profiles: counted,
-      teams: (teams.data ?? []) as Row["teams"],
-      activities: ((activities.data ?? []) as Row["activities"]).filter((a) => countedIds.has(a.user_id)),
-      checkins: ((checkins.data ?? []) as Row["checkins"]).filter((c) => countedIds.has(c.user_id)),
-      surveys: (surveys.data ?? []) as Row["surveys"],
-    });
-    setDrawHistory((draws.data ?? []) as DrawRecord[]);
-    setLoading(false);
   }, [isAdmin]);
 
   useEffect(() => {
@@ -215,6 +225,12 @@ export default function AdminPage() {
       </main>
     );
   }
+  if (loadError) return (
+    <main className="p-8">
+      <p role="alert" className="text-red-700">Admin reporting could not be loaded: {loadError}</p>
+      <button type="button" onClick={() => void load()} className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white">Retry loading report</button>
+    </main>
+  );
   if (loading || !data || !stats) return <main className="p-8 text-slate-500">Loading stats…</main>;
 
   const activeSupportCount = data.surveys.filter((message) => message.status !== "resolved").length;
