@@ -32,6 +32,8 @@ import BadgeDisplay from "./BadgeDisplay";
 import { fetchUserBadges } from "@/lib/badge-utils";
 import type { UserBadge } from "@/lib/badge-utils";
 import { challengeWeekStartDate, isFutureChallengeWeek } from "@/lib/week-access";
+import { useLoggingClosed } from "@/lib/useLoggingClosed";
+import ChallengeClosed from "./ChallengeClosed";
 
 
 export default function Dashboard({
@@ -59,6 +61,7 @@ export default function Dashboard({
   const [copied, setCopied] = useState(false);
   const [lbRefreshKey, setLbRefreshKey] = useState(0);
   const todayIsoStr = todayIso();
+  const loggingClosed = useLoggingClosed();
   const weekNow = currentChallengeWeek();
   const preChallenge = todayIsoStr < CHALLENGE.startDate;
   // In testing mode (pre-challenge), open on the week with the user's most
@@ -222,7 +225,7 @@ export default function Dashboard({
             </div>
           ))}
         </div>
-      ) : isBrandNew ? (
+      ) : isBrandNew && !loggingClosed ? (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <p className="text-2xl" aria-hidden="true">🌱</p>
           <h2 className="mt-1 font-bold text-emerald-800">Welcome! Let&apos;s get your challenge started.</h2>
@@ -286,7 +289,7 @@ export default function Dashboard({
       )}
 
       {/* Check-in nudge banner — shows when weekly check-in hasn't been done yet */}
-      {!futureWeekLocked && !checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
+      {!loggingClosed && !futureWeekLocked && !checkins.find((c) => c.week === displayWeek) && displayWeek >= 1 && (
         <div
           onClick={() =>
             document.getElementById("wellness-checkin-section")?.scrollIntoView({ behavior: "smooth" })
@@ -306,7 +309,7 @@ export default function Dashboard({
       <SectionSeparator label="Log activity" icon="🏃" />
 
       {/* Log + check-in */}
-      <div id="wellness-checkin-section" className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+      {loggingClosed ? <ChallengeClosed /> : <div id="wellness-checkin-section" className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <h2 className="mb-3 font-bold">🏃 Log wellness activity</h2>
           {futureWeekLocked ? (
@@ -343,7 +346,7 @@ export default function Dashboard({
             locked={futureWeekLocked}
           />
         </div>
-      </div>
+      </div>}
 
       <SectionSeparator label="Team" icon="🤝" />
 
@@ -428,7 +431,7 @@ export default function Dashboard({
         <Leaderboard key={lbRefreshKey} />
       </div>
 
-      {todayIsoStr >= CHALLENGE.endDate && (
+      {loggingClosed && (
         <div className="mt-6 text-center">
           <Link
             href="/wrap-up"
@@ -441,7 +444,7 @@ export default function Dashboard({
 
       <FeedbackButton profile={profile} />
 
-      {!loading && !isBrandNew && !futureWeekLocked && (
+      {!loading && !isBrandNew && !loggingClosed && !futureWeekLocked && (
         <WeeklyRecap
           activities={activities}
           checkins={checkins}

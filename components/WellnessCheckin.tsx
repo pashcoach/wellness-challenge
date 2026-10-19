@@ -7,6 +7,9 @@ import { friendlyError } from "@/lib/errors";
 import type { Profile, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
 import { challengeWeekStartDate } from "@/lib/week-access";
+import { CHALLENGE_CLOSED_MESSAGE, isLoggingClosed } from "@/lib/logging-close";
+import { useLoggingClosed } from "@/lib/useLoggingClosed";
+import ChallengeClosed from "./ChallengeClosed";
 
 export default function WellnessCheckin({
   profile,
@@ -22,6 +25,7 @@ export default function WellnessCheckin({
   locked?: boolean;
 }) {
   const [confirmed, setConfirmed] = useState(false);
+  const loggingClosed = useLoggingClosed();
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,6 +36,10 @@ export default function WellnessCheckin({
 
   async function handleCheck(e: React.FormEvent) {
     e.preventDefault();
+    if (isLoggingClosed()) {
+      setError(CHALLENGE_CLOSED_MESSAGE);
+      return;
+    }
     if (!supabase) return;
     if (locked) {
       setError(`Week ${week} check-ins open on ${challengeWeekStartDate(week)}.`);
@@ -58,6 +66,8 @@ export default function WellnessCheckin({
       onLogged();
     }
   }
+
+  if (loggingClosed) return <ChallengeClosed />;
 
   if (existing) {
     return (

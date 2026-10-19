@@ -8,6 +8,7 @@ import { useProfile, type ActivityEntry, type WellnessCheckin } from "@/lib/data
 import { supabase } from "@/lib/supabase";
 import { computeActivityStreak } from "@/lib/streaks";
 import { rankEntries } from "@/lib/leaderboard-ranking";
+import { CHALLENGE_CLOSED_MESSAGE } from "@/lib/logging-close";
 import {
   buildWrapUpStats,
   isWrapUpAvailable,
@@ -147,8 +148,8 @@ export default function WrapUpPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-200">
             Wellness Challenge 2026
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
-            🎉 Challenge Complete!
+          <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
+            {CHALLENGE_CLOSED_MESSAGE}
           </h1>
           <p className="mt-3 text-lg text-emerald-100">
             {profile.full_name.split(" ")[0]}, look at everything you accomplished.

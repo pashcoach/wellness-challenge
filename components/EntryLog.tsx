@@ -6,6 +6,8 @@ import { ACTIVITIES, CHALLENGE, getChallengeWeek, pillarForWeek, pointsForMinute
 import { friendlyError } from "@/lib/errors";
 import type { ActivityEntry, WellnessCheckin } from "@/lib/data";
 import Toast from "./Toast";
+import { CHALLENGE_CLOSED_MESSAGE, isLoggingClosed } from "@/lib/logging-close";
+import { useLoggingClosed } from "@/lib/useLoggingClosed";
 
 
 interface Props {
@@ -25,6 +27,7 @@ function formatTime(ts: string): string {
 }
 
 export default function EntryLog({ activities, checkins, onChanged }: Props) {
+  const loggingClosed = useLoggingClosed();
   const [weekFilter, setWeekFilter] = useState<number>(0); // 0 = all
   const [editing, setEditing] = useState<ActivityEntry | null>(null);
   const [editActivity, setEditActivity] = useState("");
@@ -91,6 +94,10 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
 
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault();
+    if (isLoggingClosed()) {
+      setError(CHALLENGE_CLOSED_MESSAGE);
+      return;
+    }
     if (!supabase || !editing) return;
     const mins = parseInt(editMinutes, 10);
     if (isNaN(mins) || mins <= 0) {
@@ -126,6 +133,10 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
 
   async function saveCheckinEdit(e: React.FormEvent) {
     e.preventDefault();
+    if (isLoggingClosed()) {
+      setError(CHALLENGE_CLOSED_MESSAGE);
+      return;
+    }
     if (!supabase || !editingCheckin) return;
     setBusy(true);
     setError(null);
@@ -144,6 +155,10 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
   }
 
   async function confirmDelete() {
+    if (isLoggingClosed()) {
+      setError(CHALLENGE_CLOSED_MESSAGE);
+      return;
+    }
     if (!supabase || !deleting) return;
     setBusy(true);
     const table = deleting.kind === "activity" ? "activity_entries" : "wellness_checkins";
@@ -168,8 +183,8 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
 
       <h2 className="font-bold">📒 My entry log</h2>
       <p className="mt-0.5 text-xs text-slate-500">
-        Everything you&apos;ve logged. Tap ✏️ to fix an entry or 🗑️ to remove it — points and
-        leaderboards update instantly.
+        {loggingClosed ? "Everything you've logged. Logging is closed; your entries are read-only." :
+          "Everything you've logged. Tap ✏️ to fix an entry or 🗑️ to remove it — points and leaderboards update instantly."}
       </p>
 
       {/* Week summary chips */}
@@ -220,7 +235,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
               </div>
               <span className="flex shrink-0 items-center gap-1.5">
                 <span className="text-sm font-bold text-emerald-700">+{r.points}</span>
-                {r.kind === "activity" ? (
+                {!loggingClosed && <>{r.kind === "activity" ? (
                   <button
                     onClick={() => openEdit(r.raw as ActivityEntry)}
                     className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:border-emerald-400 hover:text-emerald-700"
@@ -250,6 +265,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
                 >
                   🗑️
                 </button>
+                </>}
               </span>
             </li>
           ))}
@@ -257,7 +273,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
       )}
 
       {/* Edit modal */}
-      {editing && (
+      {!loggingClosed && editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={saveEdit} className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-xl">
             <h3 className="font-bold text-slate-800">Edit entry</h3>
@@ -325,7 +341,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
       )}
 
       {/* Check-in edit modal */}
-      {editingCheckin && (
+      {!loggingClosed && editingCheckin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form
             onSubmit={saveCheckinEdit}
@@ -363,7 +379,7 @@ export default function EntryLog({ activities, checkins, onChanged }: Props) {
       )}
 
       {/* Delete confirmation modal */}
-      {deleting && (
+      {!loggingClosed && deleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
             <h3 className="font-bold text-slate-800">Delete this entry?</h3>

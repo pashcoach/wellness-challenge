@@ -163,8 +163,8 @@ export function currentChallengeWeek(today = new Date()): number | null {
 }
 
 /** The current phase of the challenge lifecycle. */
-export function challengePhase(): "preregistration" | "active" | "post" | "pre" {
-  const today = todayIso();
+export function challengePhase(now = new Date()): "preregistration" | "active" | "post" | "pre" {
+  const today = todayIso(now);
   if (CHALLENGE.testingMode) return "pre";
   if (today >= CHALLENGE.preregistrationStart && today < CHALLENGE.startDate) return "preregistration";
   if (today >= CHALLENGE.startDate && today <= CHALLENGE.endDate) return "active";

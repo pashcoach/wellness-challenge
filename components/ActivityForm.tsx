@@ -8,6 +8,9 @@ import type { Profile } from "@/lib/data";
 import Toast from "./Toast";
 import { latestLoggableDate } from "@/lib/week-access";
 import { ACTIVITY_LOGGING_HINT } from "@/lib/activity-audit";
+import { CHALLENGE_CLOSED_MESSAGE, isLoggingClosed } from "@/lib/logging-close";
+import { useLoggingClosed } from "@/lib/useLoggingClosed";
+import ChallengeClosed from "./ChallengeClosed";
 
 const QUICK_ACTIVITIES = [
   { emoji: "🚶", label: "Walking" },
@@ -38,6 +41,7 @@ export default function ActivityForm({
   onLogged: () => void;
 }) {
   const today = todayIso();
+  const loggingClosed = useLoggingClosed();
   const [activity, setActivity] = useState("");
   const [otherActivity, setOtherActivity] = useState("");
   const [showOtherPopup, setShowOtherPopup] = useState(false);
@@ -75,6 +79,10 @@ export default function ActivityForm({
   }
 
   async function logQuick() {
+    if (isLoggingClosed()) {
+      setError(CHALLENGE_CLOSED_MESSAGE);
+      return;
+    }
     if (!supabase || !effectiveWeek || !quickActivity || !quickMinutes) return;
     if (!CHALLENGE.testingMode && date > latestLoggableDate(today)) {
       setError("Future activities cannot be logged yet.");
@@ -104,6 +112,10 @@ export default function ActivityForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isLoggingClosed()) {
+      setError(CHALLENGE_CLOSED_MESSAGE);
+      return;
+    }
     if (!supabase) return;
     if (!effectiveWeek) {
       setError("That date is outside the challenge (Oct 5 – Oct 30, 2026).");
@@ -146,6 +158,8 @@ export default function ActivityForm({
 
   const input =
     "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+
+  if (loggingClosed) return <ChallengeClosed />;
 
   return (
     <>

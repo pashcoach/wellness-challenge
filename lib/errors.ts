@@ -1,8 +1,12 @@
+import { CHALLENGE_CLOSED_MESSAGE } from "./logging-close";
+
 /** Translate raw Postgres / network errors into user-friendly messages.
  *  Logs the original error details to the console for debugging. */
 export function friendlyError(err: unknown): string {
   const msg = extractMessage(err);
   console.error("[friendlyError]", msg, err);
+
+  if (/Challenge logging is closed\./i.test(msg)) return CHALLENGE_CLOSED_MESSAGE;
 
   // Postgres error codes
   const code =
