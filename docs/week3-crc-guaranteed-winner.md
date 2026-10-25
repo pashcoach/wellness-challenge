@@ -1,3 +1,5 @@
+> SUPERSEDED: Do not deploy this historical rule or its tests/readback to current production. Use [Week3 two CRC units](week3-crc-two-units.md). Historical migration remains immutable.
+
 # Week 3 guaranteed CRC-location winner: top three active business units
 
 ## Approved rule

@@ -1,4 +1,5 @@
-// Local PostgreSQL/WASM behavioral tests. No network or production connection.
+// HISTORICAL SUPERSEDED top-three-rule regression tests, not current production policy.
+// Current rule: week3-crc-two-units.test.mjs. No network or production connection.
 // NODE_PATH=<scratch>/node_modules node --test supabase/tests/week3-crc-draw.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

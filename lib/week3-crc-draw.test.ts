@@ -6,7 +6,7 @@ const sql = readFileSync("supabase/migration-week3-crc-guaranteed-winner.sql", "
 const baseline = readFileSync("supabase/migration-weekly-draw-different-departments.sql", "utf8");
 const extract = (text: string) => text.match(/create or replace function public\.run_weekly_draw\(p_week integer\)[\s\S]*?\n\$\$;/i)?.[0];
 
-test("CRC migration changes only Week 3 first-selection behavior, leaving all other draw rules intact", () => {
+test("Historical superseded CRC migration changes only Week 3 first-selection behavior, leaving all other draw rules intact", () => {
   const actual = extract(sql);
   assert.ok(actual);
   assert.equal(actual
@@ -31,4 +31,19 @@ test("production verification never deletes draw history, refuses an existing We
   assert.doesNotMatch(verification, /\bdelete\s+from\b|\btruncate\b/i);
   assert.match(verification, /STOP: Week 3 already recorded/);
   assert.match(verification, /RAISE EXCEPTION 'TESTRESULT PASS:[^']+';\s*END \$test\$;\s*$/);
+});
+
+const current = readFileSync("supabase/migration-week3-crc-two-units.sql", "utf8");
+test("Superseding CRC rule only adds Week3 restrictions; Week4 exactly baseline", () => {
+  const actual = extract(current);
+  assert.ok(actual);
+  assert.equal(actual.replace(/  +-- BEGIN WEEK3 CRC TWO UNITS[\s\S]*?  +-- END WEEK3 CRC TWO UNITS\n/g, "").replace(/\n\n  if v_eligible/, "\n  if v_eligible"), extract(baseline));
+  assert.doesNotMatch(actual, /rank\(|v_top_crc_units/);
+  assert.equal((actual.match(/in \('energy and ag', 'consumer products'\)/g) ?? []).length, 3);
+});
+test("Superseding verification cannot commit or delete history", () => {
+  const script=readFileSync("supabase/tests/week3-crc-two-units-rollback-test.sql","utf8");
+  assert.doesNotMatch(script,/\bcommit\b|\bdelete\s+from\b|\btruncate\b/i);
+  assert.match(script,/STOP: Week 3 already recorded/);
+  assert.match(script,/RAISE EXCEPTION 'TESTRESULT PASS:[^']+';\s*END \$test\$;\s*$/);
 });
