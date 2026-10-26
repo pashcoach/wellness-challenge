@@ -8,8 +8,11 @@ export default function LoggingDeadlineNotice() {
       className="mb-4 min-w-0 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950 shadow-sm dark:border-amber-400 dark:bg-slate-900 dark:text-amber-100"
     >
       <h2 id="logging-deadline-heading" className="text-base font-bold">
-        Final logging deadline: noon Friday
+        Deadline correction: Friday, October 30 at noon
       </h2>
+      <p className="mt-2 text-sm leading-relaxed">
+        The October 26 email listed an incorrect closing time. The correct deadline is noon on Friday, October 30—not midnight. Sorry for the confusion!
+      </p>
       <p className="mt-2 break-words text-sm leading-relaxed">
         Log all your activities and complete your final wellness check-in before{" "}
         <strong><time dateTime={LOGGING_CLOSE_AT}>12:00 PM (noon) on Friday, October 30, 2026</time></strong>
