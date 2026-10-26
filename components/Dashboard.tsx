@@ -34,6 +34,7 @@ import type { UserBadge } from "@/lib/badge-utils";
 import { challengeWeekStartDate, isFutureChallengeWeek } from "@/lib/week-access";
 import { useLoggingClosed } from "@/lib/useLoggingClosed";
 import ChallengeClosed from "./ChallengeClosed";
+import LoggingDeadlineNotice from "./LoggingDeadlineNotice";
 
 
 export default function Dashboard({
@@ -161,6 +162,8 @@ export default function Dashboard({
           </button>
         </div>
       </header>
+
+      {!loggingClosed && <LoggingDeadlineNotice />}
 
       {wrapUpGateMessage && (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">

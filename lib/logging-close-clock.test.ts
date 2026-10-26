@@ -5,7 +5,7 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { isLoggingClosed, LOGGING_CLOSE_AT } from "./logging-close";
 
-test("mounted logging clock closes at midnight, rechecks resumed tabs, and removes listeners", () => {
+test("mounted logging clock closes at noon, rechecks resumed tabs, and removes listeners", () => {
   const cutoff = Date.parse(LOGGING_CLOSE_AT);
   let now = cutoff - 1;
   let closed = false;

@@ -1,14 +1,14 @@
 -- Rollback-only verification. No participant table writes: all DML targets a
--- temporary probe. Run AFTER migration-challenge-logging-close.sql.
+-- temporary probe. Run AFTER migration-challenge-logging-noon-deadline.sql.
 -- Function overrides below are transaction-local and restored by ROLLBACK.
 begin;
 
 do $$
 begin
-  if public.challenge_logging_is_closed('2026-10-30T18:00:00Z')
-    or public.challenge_logging_is_closed('2026-10-31T05:59:59.999999Z')
-    or not public.challenge_logging_is_closed('2026-10-31T06:00:00Z')
-    or not public.challenge_logging_is_closed('2026-10-31T06:00:00.000001Z') then
+  if public.challenge_logging_is_closed('2026-10-30T17:59:59.999999Z')
+    or not public.challenge_logging_is_closed('2026-10-30T18:00:00Z')
+    or not public.challenge_logging_is_closed('2026-10-30T18:00:00.000001Z')
+    or not public.challenge_logging_is_closed('2026-10-31T06:00:00Z') then
     raise exception 'FAIL cutoff boundaries';
   end if;
   if (select count(*) from pg_trigger t
@@ -21,6 +21,8 @@ begin
     raise exception 'FAIL expected two enabled write-guard triggers';
   end if;
   if has_function_privilege('anon', 'public.challenge_logging_is_closed(timestamptz)', 'execute')
+    or has_function_privilege('authenticated', 'public.challenge_logging_is_closed(timestamptz)', 'execute')
+    or has_function_privilege('anon', 'public.enforce_challenge_logging_close()', 'execute')
     or has_function_privilege('authenticated', 'public.enforce_challenge_logging_close()', 'execute') then
     raise exception 'FAIL helper grants';
   end if;
@@ -35,17 +37,19 @@ grant select, insert, update, delete on logging_close_probe to authenticated;
 -- Simulate one microsecond before the deadline, without touching server time.
 create or replace function public.challenge_logging_is_closed(p_now timestamptz default clock_timestamp())
 returns boolean language sql volatile set search_path = '' as $$
-  select timestamptz '2026-10-31T05:59:59.999999Z' >= timestamptz '2026-10-31T06:00:00Z';
+  select timestamptz '2026-10-30T17:59:59.999999Z' >= timestamptz '2026-10-30T18:00:00Z';
 $$;
+set local role authenticated;
 insert into logging_close_probe values (1);
 update logging_close_probe set id = 2;
 delete from logging_close_probe;
 insert into logging_close_probe values (1);
+reset role;
 
 -- Simulate exact cutoff, including a transaction which started before it.
 create or replace function public.challenge_logging_is_closed(p_now timestamptz default clock_timestamp())
 returns boolean language sql volatile set search_path = '' as $$
-  select timestamptz '2026-10-31T06:00:00Z' >= timestamptz '2026-10-31T06:00:00Z';
+  select timestamptz '2026-10-30T18:00:00Z' >= timestamptz '2026-10-30T18:00:00Z';
 $$;
 
 set local role authenticated;
@@ -79,5 +83,5 @@ reset role;
 
 rollback;
 -- Confirm original helper was restored, no persistent test changes.
-select not public.challenge_logging_is_closed('2026-10-31T05:59:59.999999Z')
-  and public.challenge_logging_is_closed('2026-10-31T06:00:00Z') as restored_cutoff_pass;
+select not public.challenge_logging_is_closed('2026-10-30T17:59:59.999999Z')
+  and public.challenge_logging_is_closed('2026-10-30T18:00:00Z') as restored_cutoff_pass;

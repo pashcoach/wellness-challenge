@@ -1,3 +1,5 @@
+import { isLoggingClosed } from "./logging-close";
+
 export const CHALLENGE = {
   name: "Wellness Challenge 2026",
   org: "Federated Co-operatives Limited",
@@ -143,9 +145,8 @@ export function pillarForWeek(week: number) {
 
 /** Today's date in YYYY-MM-DD using Saskatchewan (America/Regina) time.
  *  Saskatchewan is UTC-6 year-round (no DST). Using the Regina timezone (not
- *  the device's local timezone) ensures the challenge opens and closes at
- *  12:00am Saskatchewan time for every participant, regardless of where they
- *  are. */
+ *  the device's local timezone) keeps activity dates consistent for every
+ *  participant. The separate logging-close helper enforces the noon deadline. */
 export function todayIso(d = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Regina",
@@ -166,6 +167,7 @@ export function currentChallengeWeek(today = new Date()): number | null {
 export function challengePhase(now = new Date()): "preregistration" | "active" | "post" | "pre" {
   const today = todayIso(now);
   if (CHALLENGE.testingMode) return "pre";
+  if (isLoggingClosed(now)) return "post";
   if (today >= CHALLENGE.preregistrationStart && today < CHALLENGE.startDate) return "preregistration";
   if (today >= CHALLENGE.startDate && today <= CHALLENGE.endDate) return "active";
   if (today > CHALLENGE.endDate) return "post";

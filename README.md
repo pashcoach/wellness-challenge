@@ -50,6 +50,6 @@ A mobile- and desktop-friendly web app for the annual Wellness Challenge
 - No cap on team size; scoring is average points per team member
 - No mid-challenge booster points (decided against)
 - CRC data fix: proper business-unit list + separate "located at CRC?" question
-- Challenge dates: Oct 5–30, 2026; logging closes at **00:00 Oct 31, 2026 America/Regina (UTC−06:00)**. See the [logging-close SQL/deployment handoff](docs/operations/2026-logging-close.md).
+- Challenge dates: Oct 5–30, 2026; logging closes at **12:00 PM (noon) Friday Oct 30, 2026 America/Regina (UTC−06:00; 18:00Z)**. See the [logging-close SQL/deployment handoff](docs/operations/2026-logging-close.md).
 - Points: 10 pts per 10 min physical activity; 20 pts per weekly wellness check-in
 - Goals: 140 pts/week, 560 total
