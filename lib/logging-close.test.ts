@@ -28,7 +28,7 @@ test("deadline notice explicitly names activities, final check-in, noon Friday a
   assert.match(html, /12:00 PM \(noon\) on Friday, October 30, 2026/);
   assert.match(html, /Saskatchewan time \(America\/Regina\)/);
   assert.ok(html.includes(`dateTime="${LOGGING_CLOSE_AT}"`));
-  assert.match(html, /dark:bg-slate-900 dark:text-amber-100/);
+  assert.match(html, /bg-emerald-50 p-4 text-slate-800/);
   assert.ok(!html.includes("<button"));
 });
 

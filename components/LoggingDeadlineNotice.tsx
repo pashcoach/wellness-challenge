@@ -5,7 +5,7 @@ export default function LoggingDeadlineNotice() {
   return (
     <section
       aria-labelledby="logging-deadline-heading"
-      className="mb-4 min-w-0 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950 shadow-sm dark:border-amber-400 dark:bg-slate-900 dark:text-amber-100"
+      className="mb-4 min-w-0 rounded-2xl border border-emerald-200 border-l-4 border-l-emerald-600 bg-emerald-50 p-4 text-slate-800 shadow-sm"
     >
       <h2 id="logging-deadline-heading" className="text-base font-bold">
         Deadline correction: Friday, October 30 at noon
