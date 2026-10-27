@@ -19,7 +19,7 @@ export default function LoggingDeadlineNotice() {
         {" "}— Saskatchewan time (America/Regina).
       </p>
       <p className="mt-2 text-sm leading-relaxed">
-        Activity logging and check-in submissions close at noon, not midnight. After noon, your existing entries will remain available to view but cannot be added, edited or deleted.
+        After the deadline, you can still view your entries, but you won’t be able to add, edit or delete them.
       </p>
     </section>
   );
